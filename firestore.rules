@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Books collection
+    match /books/{bookId} {
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      // Chapters sub-collection
+      match /chapters/{chapterId} {
+        allow read, write: if isSignedIn() && get(/databases/$(database)/documents/books/$(bookId)).data.userId == request.auth.uid;
+      }
+
+      // Assets sub-collection
+      match /assets/{assetId} {
+        allow read, write: if isSignedIn() && get(/databases/$(database)/documents/books/$(bookId)).data.userId == request.auth.uid;
+      }
+    }
+  }
+}

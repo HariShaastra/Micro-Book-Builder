@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "book": {
+      "title": "Book",
+      "description": "Represents a writing project or manuscript.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "completed", "archived"] },
+        "description": { "type": "string" },
+        "notes": { "type": "string" },
+        "coverImage": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "updatedAt": { "type": "number" },
+        "userId": { "type": "string" }
+      },
+      "required": ["id", "title", "status", "createdAt", "updatedAt", "userId"]
+    },
+    "chapter": {
+      "title": "Chapter",
+      "description": "A section or chapter within a book.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "bookId": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "status": { "type": "string" },
+        "wordCount": { "type": "number" },
+        "isBookmarked": { "type": "boolean" },
+        "order": { "type": "number" }
+      },
+      "required": ["id", "bookId", "title", "order"]
+    },
+    "asset": {
+      "title": "Asset",
+      "description": "A file asset attached to a book.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "bookId": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "url": { "type": "string" },
+        "size": { "type": "number" }
+      },
+      "required": ["id", "bookId", "name", "type", "url"]
+    }
+  },
+  "firestore": {
+    "books": {
+      "schema": "book",
+      "description": "Collection of books/manuscripts."
+    },
+    "books/{bookId}/chapters": {
+      "schema": "chapter",
+      "description": "Sub-collection of chapters for a specific book."
+    },
+    "books/{bookId}/assets": {
+      "schema": "asset",
+      "description": "Sub-collection of assets for a specific book."
+    }
+  }
+}

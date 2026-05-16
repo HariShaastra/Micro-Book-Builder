@@ -46,7 +46,7 @@ export default function RichTextEditor({ content, onChange, placeholder = 'Start
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-slate max-w-none focus:outline-none min-h-[500px] text-lg leading-relaxed font-sans',
+        class: 'prose prose-slate max-w-none focus:outline-none min-h-[500px] sm:min-h-[600px] text-lg lg:text-xl leading-relaxed font-serif italic px-4 sm:px-0',
       },
     },
   });
@@ -65,99 +65,108 @@ export default function RichTextEditor({ content, onChange, placeholder = 'Start
       isFullscreen ? "fixed inset-0 z-50 p-8 lg:p-16 bg-editorial-bg overflow-y-auto" : ""
     )}>
       <div className={cn(
-        "flex flex-wrap items-center gap-1 transition-all mb-8 shadow-sm",
+        "flex flex-wrap items-center gap-1 transition-all mb-4 lg:mb-8 shadow-sm",
         isFullscreen 
-          ? "bg-white border border-editorial-border rounded-lg p-4 max-w-4xl mx-auto w-full sticky top-0 z-50 shadow-xl" 
-          : "sticky top-16 bg-white z-20 p-2 border border-editorial-border rounded shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
+          ? "bg-white border border-editorial-border rounded-lg p-2 lg:p-4 max-w-4xl mx-auto w-full sticky top-0 z-50 shadow-xl" 
+          : "sticky top-16 bg-white z-20 p-1 lg:p-2 border border-editorial-border rounded shadow-[0_8px_30px_rgb(0,0,0,0.04)]"
       )}>
-        <MenuButton 
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          isActive={editor.isActive('heading', { level: 1 })}
-          title="Heading 1"
-        >
-          <Heading1 size={18} />
-        </MenuButton>
-        <MenuButton 
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          isActive={editor.isActive('heading', { level: 2 })}
-          title="Heading 2"
-        >
-          <Heading2 size={18} />
-        </MenuButton>
-        <MenuButton 
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          isActive={editor.isActive('heading', { level: 3 })}
-          title="Heading 3"
-        >
-          <Heading3 size={18} />
-        </MenuButton>
-        
-        <div className="w-px h-6 bg-gray-300 mx-1" />
+        <div className="flex items-center gap-0.5 lg:gap-1 flex-wrap">
+          <MenuButton 
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            isActive={editor.isActive('heading', { level: 1 })}
+            title="Heading 1"
+          >
+            <Heading1 size={16} className="lg:w-[18px] lg:h-[18px]" />
+          </MenuButton>
+          <MenuButton 
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            isActive={editor.isActive('heading', { level: 2 })}
+            title="Heading 2"
+          >
+            <Heading2 size={16} className="lg:w-[18px] lg:h-[18px]" />
+          </MenuButton>
+          <MenuButton 
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            isActive={editor.isActive('heading', { level: 3 })}
+            title="Heading 3"
+          >
+            <Heading3 size={16} className="lg:w-[18px] lg:h-[18px]" />
+          </MenuButton>
+          
+          <div className="w-px h-5 lg:h-6 bg-gray-200 mx-1" />
 
-        <MenuButton 
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          isActive={editor.isActive('bold')}
-          title="Bold"
-        >
-          <Bold size={18} />
-        </MenuButton>
-        <MenuButton 
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          isActive={editor.isActive('italic')}
-          title="Italic"
-        >
-          <Italic size={18} />
-        </MenuButton>
-        
-        <div className="w-px h-6 bg-gray-300 mx-1" />
+          <MenuButton 
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            isActive={editor.isActive('bold')}
+            title="Bold"
+          >
+            <Bold size={16} className="lg:w-[18px] lg:h-[18px]" />
+          </MenuButton>
+          <MenuButton 
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            isActive={editor.isActive('italic')}
+            title="Italic"
+          >
+            <Italic size={16} className="lg:w-[18px] lg:h-[18px]" />
+          </MenuButton>
+          
+          <div className="w-px h-5 lg:h-6 bg-gray-200 mx-1" />
 
-        <MenuButton 
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          isActive={editor.isActive('bulletList')}
-          title="Bullet List"
-        >
-          <List size={18} />
-        </MenuButton>
-        <MenuButton 
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          isActive={editor.isActive('orderedList')}
-          title="Ordered List"
-        >
-          <ListOrdered size={18} />
-        </MenuButton>
-        <MenuButton 
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          isActive={editor.isActive('blockquote')}
-          title="Quote"
-        >
-          <Quote size={18} />
-        </MenuButton>
+          <MenuButton 
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            isActive={editor.isActive('bulletList')}
+            title="Bullet List"
+          >
+            <List size={16} className="lg:w-[18px] lg:h-[18px]" />
+          </MenuButton>
+          <MenuButton 
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            isActive={editor.isActive('orderedList')}
+            title="Ordered List"
+          >
+            <ListOrdered size={16} className="lg:w-[18px] lg:h-[18px]" />
+          </MenuButton>
+          <MenuButton 
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+            isActive={editor.isActive('blockquote')}
+            title="Quote"
+          >
+            <Quote size={16} className="lg:w-[18px] lg:h-[18px]" />
+          </MenuButton>
+        </div>
 
-        <div className="flex-1" />
+        <div className="flex-1 min-w-[8px]" />
 
-        <MenuButton 
-          onClick={() => editor.chain().focus().undo().run()}
-          title="Undo"
-        >
-          <Undo size={18} />
-        </MenuButton>
-        <MenuButton 
-          onClick={() => editor.chain().focus().redo().run()}
-          title="Redo"
-        >
-          <Redo size={18} />
-        </MenuButton>
+        <div className="flex items-center gap-0.5 lg:gap-1">
+          <MenuButton 
+            onClick={() => editor.chain().focus().undo().run()}
+            title="Undo"
+          >
+            <Undo size={16} className="lg:w-[18px] lg:h-[18px]" />
+          </MenuButton>
+          <MenuButton 
+            onClick={() => editor.chain().focus().redo().run()}
+            title="Redo"
+          >
+            <Redo size={16} className="lg:w-[18px] lg:h-[18px]" />
+          </MenuButton>
+        </div>
       </div>
 
       <div className={cn(
         "flex-1",
         isFullscreen ? "max-w-3xl mx-auto w-full py-16" : ""
       )}>
-        <EditorContent editor={editor} />
+        {editor && editor.isEmpty && (
+        <div className="absolute top-[88px] left-4 sm:left-0 text-editorial-muted font-serif italic text-lg lg:text-xl opacity-30 pointer-events-none">
+          {placeholder || "The story begins here... Let your thoughts crystallize."}
+        </div>
+      )}
+      <EditorContent editor={editor} />
       </div>
 
       {!isFullscreen && (
-         <div className="px-4 py-2 border-t border-gray-100 flex justify-end text-xs text-gray-400 font-mono">
+         <div className="hidden sm:flex px-4 py-2 border-t border-gray-100 justify-end text-xs text-gray-400 font-mono">
             {editor.getText().length} UTF-8 Characters
          </div>
       )}

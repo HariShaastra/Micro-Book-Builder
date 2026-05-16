@@ -10,6 +10,8 @@ import Editor from './components/Editor.tsx';
 import Mascot from './components/Mascot.tsx';
 import { v4 as uuidv4 } from 'uuid';
 
+import { NotificationProvider } from './contexts/NotificationContext.tsx';
+
 export default function App() {
   const [books, setBooks] = useState<Book[]>([]);
   const [activeBookId, setActiveBookId] = useState<string | null>(null);
@@ -40,7 +42,7 @@ export default function App() {
     
     const newBook: Book = {
       id: uuidv4(),
-      title: template.id === 'scratch' ? 'Untitled Book' : `${template.name} Project`,
+      title: template.id === 'scratch' ? 'Untitled Book' : `${template.name} Manuscript`,
       description: '',
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -52,7 +54,9 @@ export default function App() {
         isBookmarked: false,
         status: 'draft',
         wordCount: 0,
+        order: index
       })),
+      assets: []
     };
 
     setBooks([newBook, ...books]);
@@ -64,7 +68,7 @@ export default function App() {
   };
 
   const deleteBook = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this book? This action cannot be undone.')) {
+    if (window.confirm('Are you sure you want to delete this manuscript? This action cannot be undone.')) {
       setBooks(prev => prev.filter(b => b.id !== id));
       if (activeBookId === id) setActiveBookId(null);
     }
@@ -75,23 +79,25 @@ export default function App() {
   if (!isInitialized) return null;
 
   return (
-    <div className="min-h-screen bg-editorial-bg text-editorial-text font-sans selection:bg-editorial-text selection:text-white">
-      {activeBookId && activeBook ? (
-        <Editor 
-          book={activeBook} 
-          onUpdate={updateBook} 
-          onBack={() => setActiveBookId(null)} 
-        />
-      ) : (
-        <Dashboard 
-          books={books} 
-          onCreateBook={createBook} 
-          onSelectBook={setActiveBookId}
-          onDeleteBook={deleteBook}
-        />
-      )}
-      <Mascot />
-    </div>
+    <NotificationProvider>
+      <div className="min-h-screen bg-editorial-bg text-editorial-text font-serif selection:bg-editorial-text selection:text-white">
+        {activeBookId && activeBook ? (
+          <Editor 
+            book={activeBook} 
+            onUpdate={updateBook} 
+            onBack={() => setActiveBookId(null)} 
+          />
+        ) : (
+          <Dashboard 
+            books={books} 
+            onCreateBook={createBook} 
+            onSelectBook={setActiveBookId}
+            onDeleteBook={deleteBook} 
+          />
+        )}
+        <Mascot />
+      </div>
+    </NotificationProvider>
   );
 }
 

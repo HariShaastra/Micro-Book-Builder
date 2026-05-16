@@ -13,12 +13,21 @@ export interface Chapter {
   wordCount: number;
 }
 
+export interface Asset {
+  id: string;
+  name: string;
+  type: string;
+  url: string;
+  size: number;
+}
+
 export interface Book {
   id: string;
   title: string;
   description: string;
   notes?: string;
   coverImage?: string;
+  assets?: Asset[];
   chapters: Chapter[];
   createdAt: number;
   updatedAt: number;

@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { Book } from '../types.ts';
-import { X, Download, FileText, CheckCircle2 } from 'lucide-react';
+import { X, Download, FileText, CheckCircle2, ChevronLeft } from 'lucide-react';
 import { motion } from 'motion/react';
 import { jsPDF } from 'jspdf';
 import { cn } from '../lib/utils.ts';
@@ -123,70 +123,74 @@ export default function ExportModal({ book, onClose }: ExportModalProps) {
       <motion.div 
         initial={{ scale: 0.98, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-editorial-bg border border-editorial-border rounded w-full max-w-lg shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden"
+        className="bg-editorial-bg border border-editorial-border rounded-lg w-full max-w-lg shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] overflow-y-auto max-h-[90vh]"
       >
-        <div className="p-8 border-b border-editorial-divider flex justify-between items-center bg-editorial-sidebar/30">
+        <div className="p-6 lg:p-8 border-b border-editorial-divider flex justify-between items-center bg-editorial-sidebar/30 sticky top-0 z-10 backdrop-blur-md">
           <div>
-            <div className="text-[10px] uppercase tracking-ultra-editorial font-bold text-editorial-accent mb-1">Final Process</div>
-            <h2 className="text-2xl font-serif italic text-editorial-text">Prepare Manuscript</h2>
+            <div className="text-[9px] lg:text-[10px] uppercase tracking-ultra-editorial font-bold text-editorial-accent mb-1">Final Process</div>
+            <h2 className="text-xl lg:text-2xl font-serif italic text-editorial-text">Prepare Manuscript</h2>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-editorial-hover rounded-full transition-colors text-editorial-accent">
-            <X size={20} />
+          <button 
+            onClick={onClose} 
+            className="flex items-center gap-2 text-editorial-muted hover:text-editorial-text transition-colors text-[10px] font-bold uppercase tracking-widest"
+          >
+            <ChevronLeft size={14} />
+            Back
           </button>
         </div>
 
-        <div className="p-10">
-          <div className="space-y-10">
+        <div className="p-6 lg:p-10">
+          <div className="space-y-8 lg:space-y-10">
             <div>
-              <label className="text-[10px] uppercase font-bold tracking-ultra-editorial text-editorial-accent block mb-6">Binding Format</label>
-              <div className="grid grid-cols-2 gap-6">
+              <label className="text-[9px] lg:text-[10px] uppercase font-bold tracking-ultra-editorial text-editorial-accent block mb-4 lg:mb-6">Binding Format</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
                 <button 
                   onClick={() => setFormat('pdf')}
                   className={cn(
-                    "flex flex-col items-center gap-4 p-8 rounded border transition-all text-center",
+                    "flex flex-col items-center gap-3 lg:gap-4 p-6 lg:p-8 rounded border transition-all text-center",
                     format === 'pdf' ? "border-editorial-text bg-white shadow-md ring-1 ring-editorial-text" : "border-editorial-border hover:border-editorial-accent bg-editorial-sidebar/20"
                   )}
                 >
-                  <FileText size={32} className={format === 'pdf' ? "text-editorial-text" : "text-editorial-muted"} />
+                  <FileText size={28} className={format === 'pdf' ? "text-editorial-text" : "text-editorial-muted"} />
                   <div>
-                    <div className="font-bold text-[10px] tracking-widest uppercase">Archival PDF</div>
-                    <div className="text-[9px] text-editorial-muted uppercase mt-1">Universal Access</div>
+                    <div className="font-bold text-[9px] lg:text-[10px] tracking-widest uppercase">Archival PDF</div>
+                    <div className="text-[8px] lg:text-[9px] text-editorial-muted uppercase mt-1">Universal Access</div>
                   </div>
                 </button>
-                <div className="flex flex-col items-center justify-center gap-4 p-8 rounded border border-editorial-border/50 bg-editorial-sidebar/10 opacity-40 cursor-not-allowed text-center">
-                  <FileText size={32} className="text-editorial-muted" />
+                <div className="flex flex-col items-center justify-center gap-3 lg:gap-4 p-6 lg:p-8 rounded border border-editorial-border/50 bg-editorial-sidebar/10 opacity-40 cursor-not-allowed text-center">
+                  <FileText size={28} className="text-editorial-muted" />
                    <div>
-                    <div className="font-bold text-[10px] tracking-widest uppercase text-editorial-muted">Digital EPUB</div>
-                    <div className="text-[9px] text-editorial-muted uppercase mt-1">Coming Soon</div>
+                    <div className="font-bold text-[9px] lg:text-[10px] tracking-widest uppercase text-editorial-muted">Digital EPUB</div>
+                    <div className="text-[8px] lg:text-[9px] text-editorial-muted uppercase mt-1">Soon</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-4">
-               <label className="text-[10px] uppercase font-bold tracking-ultra-editorial text-editorial-accent block mb-4">Structure Options</label>
-               <label className="flex items-center gap-4 cursor-pointer group p-4 bg-white border border-editorial-border rounded hover:bg-editorial-sidebar transition-colors">
+            <div className="space-y-3 lg:space-y-4">
+               <label className="text-[9px] lg:text-[10px] uppercase font-bold tracking-ultra-editorial text-editorial-accent block mb-3 lg:mb-4">Structure Options</label>
+               <label className="flex items-center gap-3 lg:gap-4 cursor-pointer group p-3 lg:p-4 bg-white border border-editorial-border rounded hover:bg-editorial-sidebar transition-colors">
                   <input 
                     type="checkbox" 
                     checked={includeCover} 
                     onChange={e => setIncludeCover(e.target.checked)}
-                    className="w-5 h-5 rounded-sm border-editorial-border text-editorial-text focus:ring-editorial-text"
+                    className="w-4 h-4 lg:w-5 lg:h-5 rounded-sm border-editorial-border text-editorial-text focus:ring-editorial-text shrink-0"
                   />
                    <div>
-                     <span className="text-xs font-bold tracking-widest uppercase text-editorial-text block">Title Page</span>
-                     <span className="text-[10px] text-editorial-muted italic">Formal manuscript opening</span>
+                     <span className="text-[11px] lg:text-xs font-bold tracking-widest uppercase text-editorial-text block">Title Page</span>
+                     <span className="text-[9px] lg:text-[10px] text-editorial-muted italic">Formal opening</span>
                    </div>
                </label>
-               <label className="flex items-center gap-4 cursor-pointer group p-4 bg-white border border-editorial-border rounded hover:bg-editorial-sidebar transition-colors">
+               <label className="flex items-center gap-3 lg:gap-4 cursor-pointer group p-3 lg:p-4 bg-white border border-editorial-border rounded hover:bg-editorial-sidebar transition-colors">
                   <input 
                     type="checkbox" 
                     checked={includeTOC} 
                     onChange={e => setIncludeTOC(e.target.checked)}
-                    className="w-5 h-5 rounded-sm border-editorial-border text-editorial-text focus:ring-editorial-text"
+                    className="w-4 h-4 lg:w-5 lg:h-5 rounded-sm border-editorial-border text-editorial-text focus:ring-editorial-text shrink-0"
                   />
                   <div>
-                    <span className="text-xs font-bold tracking-widest uppercase text-editorial-text block">Directory</span>
-                    <span className="text-[10px] text-editorial-muted italic">Auto-generated navigation</span>
+                    <span className="text-[11px] lg:text-xs font-bold tracking-widest uppercase text-editorial-text block">Directory</span>
+                    <span className="text-[9px] lg:text-[10px] text-editorial-muted italic">Auto-generated</span>
                   </div>
                </label>
             </div>
@@ -195,7 +199,7 @@ export default function ExportModal({ book, onClose }: ExportModalProps) {
           <button 
             onClick={generatePDF}
             disabled={isExporting}
-            className="w-full bg-editorial-text text-white py-5 rounded font-bold text-[10px] tracking-[0.3em] uppercase mt-12 hover:bg-black disabled:opacity-50 disabled:cursor-wait flex items-center justify-center gap-3 transition-all shadow-[0_10px_20px_-5px_rgba(0,0,0,0.3)]"
+            className="w-full bg-editorial-text text-white py-4 lg:py-5 rounded font-bold text-[9px] lg:text-[10px] tracking-[0.3em] uppercase mt-10 lg:mt-12 hover:bg-black disabled:opacity-50 disabled:cursor-wait flex items-center justify-center gap-3 transition-all shadow-lg"
           >
             {isExporting ? (
               <>
