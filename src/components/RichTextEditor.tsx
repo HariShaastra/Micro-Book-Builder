@@ -46,7 +46,7 @@ export default function RichTextEditor({ content, onChange, placeholder = 'Start
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-slate max-w-none focus:outline-none min-h-[500px] sm:min-h-[600px] text-lg lg:text-xl leading-relaxed font-serif italic px-4 sm:px-0',
+        class: 'prose prose-slate max-w-none focus:outline-none min-h-[500px] sm:min-h-[600px] text-lg lg:text-xl leading-relaxed font-serif px-4 sm:px-0',
       },
     },
   });
@@ -154,15 +154,10 @@ export default function RichTextEditor({ content, onChange, placeholder = 'Start
       </div>
 
       <div className={cn(
-        "flex-1",
+        "flex-1 relative",
         isFullscreen ? "max-w-3xl mx-auto w-full py-16" : ""
       )}>
-        {editor && editor.isEmpty && (
-        <div className="absolute top-[88px] left-4 sm:left-0 text-editorial-muted font-serif italic text-lg lg:text-xl opacity-30 pointer-events-none">
-          {placeholder || "The story begins here... Let your thoughts crystallize."}
-        </div>
-      )}
-      <EditorContent editor={editor} />
+        <EditorContent editor={editor} />
       </div>
 
       {!isFullscreen && (

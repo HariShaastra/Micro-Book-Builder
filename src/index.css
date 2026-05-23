@@ -38,3 +38,45 @@
   letter-spacing: 0.4em;
 }
 
+/* Exquisite thin scrollbars for our digital typewriter studio */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-editorial-border);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-editorial-accent);
+}
+
+/* Hide scrollbars but keep scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+/* Tiptap Placeholder Native Styling */
+.ProseMirror p.is-editor-empty:first-child::before,
+.ProseMirror p.is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #A69F95; /* editorial-muted */
+  pointer-events: none;
+  height: 0;
+  font-style: italic;
+  opacity: 0.5;
+}
+
+
+

@@ -6,7 +6,74 @@
 import React from 'react';
 import { motion } from 'motion/react';
 
-export default function Logo({ className = "" }: { className?: string }) {
+export default function Logo({ className = "", compact = false }: { className?: string; compact?: boolean }) {
+  if (compact) {
+    return (
+      <div className={`flex items-center gap-3 ${className}`}>
+        <div className="relative w-11 h-11 flex items-center justify-center shrink-0">
+          {/* Ambient Rotating Symmetrical Background Layers */}
+          <motion.div 
+            animate={{ rotate: 360 }}
+            transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-0 border-[0.5px] border-editorial-text/10 rounded-full"
+          />
+          <motion.div 
+            animate={{ rotate: -360 }}
+            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-1.5 border-[0.5px] border-editorial-accent/20 rounded-full border-dashed"
+          />
+          <motion.div 
+            animate={{ scale: [1, 1.05, 1], opacity: [0.1, 0.15, 0.1] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute inset-2.5 bg-editorial-accent/15 blur-md rounded-full"
+          />
+          
+          <motion.div 
+            className="relative z-10 text-editorial-text scale-75 origin-center"
+          >
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Central Pillar */}
+              <path 
+                d="M12 4V20" 
+                stroke="currentColor" 
+                strokeWidth="1.5" 
+                strokeLinecap="round" 
+              />
+              {/* Symmetrical Small Pages */}
+              {[6, 8].map((y, i) => (
+                <React.Fragment key={i}>
+                  <path
+                    d={`M12 ${y}C6 ${y} 4 ${y+4} 4 ${y+8}C4 ${y+10} 12 ${y+12} 12 ${y+12}`}
+                    stroke="currentColor"
+                    strokeWidth="1"
+                    strokeLinecap="round"
+                    opacity={0.5 - i * 0.15}
+                  />
+                  <path
+                    d={`M12 ${y}C18 ${y} 20 ${y+4} 20 ${y+8}C20 ${y+10} 12 ${y+12} 12 ${y+12}`}
+                    stroke="currentColor"
+                    strokeWidth="1"
+                    strokeLinecap="round"
+                    opacity={0.5 - i * 0.15}
+                  />
+                </React.Fragment>
+              ))}
+              <circle cx="12" cy="3" r="1.5" fill="currentColor" />
+            </svg>
+          </motion.div>
+        </div>
+
+        <div className="flex flex-col items-start leading-none min-w-0">
+          <div className="flex items-baseline gap-1">
+            <span className="text-base font-serif italic font-bold tracking-tight text-editorial-text">Micro</span>
+            <span className="text-[9px] font-bold tracking-[0.15em] uppercase text-editorial-accent">Book</span>
+          </div>
+          <span className="text-[9px] font-mono font-bold tracking-[0.45em] uppercase text-editorial-muted mt-0.5">Builder</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`flex flex-col items-center gap-2 ${className}`}>
       <div className="relative w-20 h-20 flex items-center justify-center">

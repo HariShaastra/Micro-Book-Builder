@@ -7,7 +7,6 @@ import React, { useState, useEffect } from 'react';
 import { Book, TEMPLATES } from './types.ts';
 import Dashboard from './components/Dashboard.tsx';
 import Editor from './components/Editor.tsx';
-import Mascot from './components/Mascot.tsx';
 import { v4 as uuidv4 } from 'uuid';
 
 import { NotificationProvider } from './contexts/NotificationContext.tsx';
@@ -95,7 +94,6 @@ export default function App() {
             onDeleteBook={deleteBook} 
           />
         )}
-        <Mascot />
       </div>
     </NotificationProvider>
   );
