@@ -10,13 +10,129 @@ import { Plus, Book as BookIcon, Trash2, Clock, FileText, LayoutGrid, List, Libr
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, formatDate } from '../lib/utils.ts';
 import Logo from './Logo.tsx';
+import { v4 as uuidv4 } from 'uuid';
+import * as mammoth from 'mammoth';
 
 import { auth, googleProvider, signInWithPopup, signOut, onAuthStateChanged, User } from '../lib/firebase.ts';
 import { useNotification } from '../contexts/NotificationContext';
 
+// Load PDF.JS dynamically from CDN
+const loadPdfJS = (): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    if ((window as any).pdfjsLib) {
+      resolve((window as any).pdfjsLib);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    script.onload = () => {
+      const pdfjsLib = (window as any).pdfjsLib;
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      resolve(pdfjsLib);
+    };
+    script.onerror = (err) => reject(err);
+    document.head.appendChild(script);
+  });
+};
+
+// Extract text from pdf pages
+const extractTextFromPdf = async (arrayBuffer: ArrayBuffer): Promise<string> => {
+  const pdfjsLib = await loadPdfJS();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items.map((item: any) => item.str).join(' ');
+    fullText += pageText + '\n\n';
+  }
+  return fullText;
+};
+
+// Smart text splitter to parse documents into logical chapters
+const splitIntoChapters = (text: string, fileName: string): { title: string; content: string }[] => {
+  const normalizedText = text.replace(/\r\n/g, '\n');
+  
+  // Regular expressions for chapter patterns
+  const wordOrNumber = /(?:\d+|[IVXLCDM]+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)/i;
+  const standardChapterRegex = new RegExp(`^(?:Chapter|CHAPTER|Section|SECTION|Part|PART|Ch\\.|CH\\.)\\s+${wordOrNumber.source}\\b.*$`, 'm');
+
+  const lines = normalizedText.split('\n');
+  const chapters: { title: string; content: string[] }[] = [];
+  let currentChapterTitle = 'Introduction';
+  let currentChapterLines: string[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Check if line is a chapter heading
+    const isMarkdownHeader = line.startsWith('# ') || line.startsWith('## ');
+    const isStandardChapter = standardChapterRegex.test(line) && line.length < 100;
+    
+    if (isMarkdownHeader || isStandardChapter) {
+      if (currentChapterLines.length > 0 || currentChapterTitle !== 'Introduction') {
+        chapters.push({
+          title: currentChapterTitle,
+          content: [...currentChapterLines]
+        });
+        currentChapterLines = [];
+      }
+      
+      if (isMarkdownHeader) {
+        currentChapterTitle = line.replace(/^#+\s+/, '').trim();
+      } else {
+        currentChapterTitle = line;
+      }
+    } else {
+      if (line || currentChapterLines.length > 0) {
+        currentChapterLines.push(lines[i]);
+      }
+    }
+  }
+  
+  if (currentChapterLines.length > 0 || chapters.length === 0) {
+    chapters.push({
+      title: currentChapterTitle,
+      content: currentChapterLines
+    });
+  }
+
+  let finalChapters: { title: string; content: string }[] = [];
+  
+  if (chapters.length === 1 && chapters[0].title === 'Introduction') {
+    const allText = chapters[0].content.join('\n');
+    const words = allText.split(/\s+/);
+    if (words.length > 2000) {
+      const wordsPerChapter = 1500;
+      let chapterIndex = 1;
+      for (let i = 0; i < words.length; i += wordsPerChapter) {
+        const chunkWords = words.slice(i, i + wordsPerChapter);
+        finalChapters.push({
+          title: `Chapter ${chapterIndex}`,
+          content: chunkWords.join(' ')
+        });
+        chapterIndex++;
+      }
+    } else {
+      finalChapters.push({
+        title: 'Initial Draft',
+        content: allText
+      });
+    }
+  } else {
+    finalChapters = chapters.map(ch => ({
+      title: ch.title,
+      content: ch.content.join('\n')
+    }));
+  }
+  
+  return finalChapters;
+};
+
 interface DashboardProps {
   books: Book[];
   onCreateBook: (templateId: string) => void;
+  onImportBook: (book: Book) => void;
   onSelectBook: (id: string) => void;
   onDeleteBook: (id: string) => void;
 }
@@ -26,7 +142,7 @@ const TemplateIcon = ({ name, className }: { name: string, className?: string })
   return <Icon className={className} size={24} />;
 };
 
-export default function Dashboard({ books, onCreateBook, onSelectBook, onDeleteBook }: DashboardProps) {
+export default function Dashboard({ books, onCreateBook, onImportBook, onSelectBook, onDeleteBook }: DashboardProps) {
   const [showGuide, setShowGuide] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filter, setFilter] = useState<'all' | 'draft' | 'completed' | 'archived'>('all');
@@ -38,8 +154,110 @@ export default function Dashboard({ books, onCreateBook, onSelectBook, onDeleteB
   const [handbookTab, setHandbookTab] = useState<'intro' | 'writing' | 'outline' | 'structure' | 'assets' | 'export'>('intro');
   const templatesRef = React.useRef<HTMLDivElement>(null);
   const { notify } = useNotification();
+  const [isArchitectureOpen, setIsArchitectureOpen] = useState(false);
 
   const [currentTip, setCurrentTip] = useState(0);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importDragActive, setImportDragActive] = useState(false);
+
+  const handleDocumentImport = async (file: File) => {
+    setIsImporting(true);
+    notify('Analyzing document structure and layout...', 'info');
+
+    try {
+      const fileType = file.name.split('.').pop()?.toLowerCase();
+      let rawText = '';
+
+      if (fileType === 'txt' || fileType === 'md') {
+        rawText = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target?.result as string);
+          reader.onerror = (err) => reject(err);
+          reader.readAsText(file);
+        });
+      } else if (fileType === 'docx') {
+        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
+          reader.onerror = (err) => reject(err);
+          reader.readAsArrayBuffer(file);
+        });
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        rawText = result.value;
+      } else if (fileType === 'pdf') {
+        const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target?.result as ArrayBuffer);
+          reader.onerror = (err) => reject(err);
+          reader.readAsArrayBuffer(file);
+        });
+        rawText = await extractTextFromPdf(arrayBuffer);
+      } else {
+        throw new Error('Unsupported file format. Please upload a PDF, Google Doc (.docx), Word (.docx), or plain text file.');
+      }
+
+      if (!rawText || rawText.trim() === '') {
+        throw new Error('The uploaded document appears to be empty or contains no readable text.');
+      }
+
+      // Parse the raw text into chapters
+      const parsedChapters = splitIntoChapters(rawText, file.name);
+
+      const newBook: Book = {
+        id: uuidv4(),
+        title: file.name.substring(0, file.name.lastIndexOf('.')) || file.name,
+        description: `Imported from ${file.name} on ${new Date().toLocaleDateString()}`,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        status: 'draft',
+        chapters: parsedChapters.map((ch, index) => ({
+          id: uuidv4(),
+          title: ch.title,
+          content: ch.content,
+          isBookmarked: false,
+          status: 'draft',
+          wordCount: ch.content.split(/\s+/).filter(Boolean).length,
+          order: index
+        })),
+        assets: []
+      };
+
+      onImportBook(newBook);
+      notify(`Project "${newBook.title}" successfully imported with ${newBook.chapters.length} chapters!`, 'success');
+    } catch (error: any) {
+      console.error(error);
+      notify(error.message || 'Failed to parse the uploaded document.', 'error');
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setImportDragActive(true);
+    } else if (e.type === "dragleave") {
+      setImportDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setImportDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      await handleDocumentImport(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    if (e.target.files && e.target.files[0]) {
+      await handleDocumentImport(e.target.files[0]);
+    }
+  };
 
   const TIPS = [
     "True writing is an act of architecture. Define your boundaries.",
@@ -193,62 +411,74 @@ export default function Dashboard({ books, onCreateBook, onSelectBook, onDeleteB
         </div>
       </div>
 
-      {/* Non-AI Disclaimer Banner */}
-      <div className="mb-10 lg:mb-12 p-5 lg:p-6 bg-editorial-sidebar/30 border border-editorial-border rounded flex flex-col sm:flex-row items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-white border border-editorial-border rounded-full text-emerald-600 shrink-0">
-            <ShieldCheck size={20} />
+      {/* Instant Document Importer Zone */}
+      <div className="mb-12 bg-white border border-editorial-border p-6 lg:p-8 rounded-lg shadow-sm text-left">
+        <div className="flex items-start gap-4 mb-5 pb-4 border-b border-editorial-divider">
+          <div className="p-2.5 bg-editorial-sidebar rounded border border-editorial-border text-editorial-accent">
+            <FileText size={20} />
           </div>
           <div>
-            <h4 className="text-[10px] lg:text-xs font-bold uppercase tracking-widest text-editorial-text text-left">Integrity Guarantee</h4>
-            <p className="text-[10px] lg:text-[11px] text-editorial-accent font-serif italic mt-0.5 text-left leading-snug lg:leading-relaxed">Micro Book Builder is 100% human-driven. No AI writing, suggestions, or auto-generation is present in this studio.</p>
+            <span className="text-[9px] uppercase tracking-ultra-editorial font-bold text-editorial-accent">Instant Digital Manuscript Loader</span>
+            <h2 className="text-lg lg:text-xl font-serif italic text-editorial-text font-medium mt-0.5">Establish Project from Document</h2>
+            <p className="text-xs text-editorial-accent font-serif italic mt-1 leading-relaxed">
+              Upload any PDF, Google Doc, Word document, or plain text manuscript. The archivist will analyze your text, establish your layout, and construct an editable project with chapter partitions instantly.
+            </p>
           </div>
         </div>
-        <div className="w-full sm:w-auto text-[9px] font-mono font-bold text-editorial-muted uppercase tracking-widest border border-editorial-divider px-3 py-1 rounded text-center sm:text-left">
-          Pure Studio Mode
+
+        <div 
+          onDragEnter={handleDrag}
+          onDragOver={handleDrag}
+          onDragLeave={handleDrag}
+          onDrop={handleDrop}
+          className={cn(
+            "relative border-2 border-dashed rounded-lg p-8 text-center flex flex-col items-center justify-center transition-all duration-300 min-h-[160px]",
+            importDragActive 
+              ? "border-editorial-accent bg-editorial-sidebar/40 scale-[1.01]" 
+              : "border-editorial-divider hover:border-editorial-border bg-editorial-sidebar/10",
+            isImporting && "opacity-60 pointer-events-none"
+          )}
+        >
+          <input 
+            type="file" 
+            id="doc-import-input" 
+            accept=".pdf,.docx,.txt,.md" 
+            onChange={handleFileChange} 
+            className="hidden" 
+          />
+          
+          {isImporting ? (
+            <div className="flex flex-col items-center gap-4 py-4">
+              <div className="relative animate-pulse">
+                <div className="w-12 h-12 border-2 border-editorial-divider border-t-editorial-accent rounded-full animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <BookIcon size={16} className="text-editorial-accent" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-serif italic font-medium text-editorial-text animate-pulse">Deconstructing manuscript typography...</p>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-editorial-accent text-center">Parsing PDF, Docx, or Text blocks</p>
+              </div>
+            </div>
+          ) : (
+            <label htmlFor="doc-import-input" className="cursor-pointer flex flex-col items-center gap-4 w-full h-full p-4">
+              <div className="p-4 bg-white rounded-full border border-editorial-border text-editorial-accent hover:text-editorial-text hover:border-editorial-text hover:shadow-md transition-all duration-300">
+                <LucideIcons.UploadCloud size={32} />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-serif italic font-medium text-editorial-text">
+                  Drag and drop your manuscript here, or <span className="underline text-editorial-accent hover:text-editorial-text transition-colors">browse files</span>
+                </p>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-editorial-muted">
+                  Supports PDF, Google Doc (.docx), MS Word (.docx), TXT, and Markdown
+                </p>
+              </div>
+            </label>
+          )}
         </div>
       </div>
 
-      {/* Layman Quick start guide section */}
-      <div className="mb-12 p-6 lg:p-8 bg-white border border-editorial-border rounded-lg text-left shadow-sm">
-        <div className="border-b border-editorial-divider pb-4 mb-6">
-          <span className="text-[9px] uppercase tracking-ultra-editorial font-bold text-editorial-accent">Layman's Quick-Start Portal</span>
-          <h2 className="text-xl lg:text-2xl font-serif italic font-medium text-editorial-text mt-1">What is Micro Book Builder?</h2>
-          <p className="text-xs text-editorial-accent font-serif italic mt-2 leading-relaxed">
-            Micro Book Builder is a serene, private typewriter app that lets you write and publish books without distracting tools or automated AI clutter. Your thoughts are kept 100% secure in your browser.
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-6 h-6 rounded-full bg-editorial-sidebar border border-editorial-border text-xs font-mono font-bold flex items-center justify-center text-editorial-text">1</span>
-              <h4 className="text-[10px] font-bold uppercase tracking-widest text-editorial-text">Adopt a Structure</h4>
-            </div>
-            <p className="text-xs text-editorial-accent leading-relaxed font-serif italic">
-              Scroll to the <strong>Architecture</strong> section, find a blueprint that matches (e.g., Short Story, Novel, or blank pad), and click it to establish the draft vault.
-            </p>
-          </div>
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-6 h-6 rounded-full bg-editorial-sidebar border border-editorial-border text-xs font-mono font-bold flex items-center justify-center text-editorial-text">2</span>
-              <h4 className="text-[10px] font-bold uppercase tracking-widest text-editorial-text">Add & Write Sections</h4>
-            </div>
-            <p className="text-xs text-editorial-accent leading-relaxed font-serif italic">
-              Click your draft card to enter. Click <strong>Add Chapter</strong> to grow your index, drag chapters to reorder them, and type text as auto-save stores each character instantly.
-            </p>
-          </div>
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-6 h-6 rounded-full bg-editorial-sidebar border border-editorial-border text-xs font-mono font-bold flex items-center justify-center text-editorial-text">3</span>
-              <h4 className="text-[10px] font-bold uppercase tracking-widest text-editorial-text">Storyboard & Export</h4>
-            </div>
-            <p className="text-xs text-editorial-accent leading-relaxed font-serif italic">
-              Map out character summaries in <strong>Outline</strong>, link research charts in <strong>Assets</strong>, and hit <strong>Export</strong> to instantly print your work as a publication-ready PDF.
-            </p>
-          </div>
-        </div>
-      </div>
+
 
       <AnimatePresence>
         {showGuide && (
@@ -699,6 +929,17 @@ export default function Dashboard({ books, onCreateBook, onSelectBook, onDeleteB
                 className="p-6 lg:p-8 cursor-pointer h-full flex flex-col"
                 onClick={() => onSelectBook(book.id)}
               >
+                {book.coverImage && (
+                  <div className="mb-6 aspect-[4/3] w-full rounded overflow-hidden bg-editorial-sidebar border border-editorial-border shrink-0 shadow-sm relative group-hover:shadow-md transition-all duration-500">
+                    <img 
+                      src={book.coverImage} 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 grayscale-[20%] group-hover:grayscale-0" 
+                      alt={book.title} 
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
+                  </div>
+                )}
                 <div className="flex justify-between items-start mb-6">
                   <div className="text-[9px] lg:text-[10px] tracking-widest uppercase font-bold text-editorial-muted flex items-center gap-2">
                     <Clock size={12} />
@@ -755,8 +996,19 @@ export default function Dashboard({ books, onCreateBook, onSelectBook, onDeleteB
                   onClick={() => onSelectBook(book.id)}
                 >
                   <td className="px-6 py-4">
-                    <div className="text-sm font-serif italic text-editorial-text">{book.title}</div>
-                    <div className="text-[10px] lg:text-[11px] text-editorial-accent truncate max-w-xs">{book.description || 'No description established.'}</div>
+                    <div className="flex items-center gap-4">
+                      {book.coverImage ? (
+                        <img src={book.coverImage} className="w-8 h-12 object-cover rounded shadow-sm border border-editorial-border shrink-0" alt="" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-8 h-12 bg-editorial-sidebar border border-dashed border-editorial-border rounded flex items-center justify-center shrink-0">
+                          <BookIcon size={12} className="text-editorial-muted" />
+                        </div>
+                      )}
+                      <div>
+                        <div className="text-sm font-serif italic text-editorial-text">{book.title}</div>
+                        <div className="text-[10px] lg:text-[11px] text-editorial-accent truncate max-w-xs">{book.description || 'No description established.'}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-[11px] font-mono font-bold text-editorial-muted">{book.chapters.length}</td>
                   <td className="px-6 py-4">
@@ -787,122 +1039,212 @@ export default function Dashboard({ books, onCreateBook, onSelectBook, onDeleteB
         </div>
       )}
 
-      {/* Architecture selection panel now rendered beautifully at the bottom of the home page */}
+      {/* Collapsible Architecture Selection Accordion Panel */}
       <div 
         ref={templatesRef}
-        className="mt-16 lg:mt-24 mb-10 lg:mb-16 bg-editorial-sidebar border border-editorial-border p-6 lg:p-10 rounded-lg shadow-sm"
+        className="mt-16 lg:mt-24 mb-16 bg-white border border-editorial-border rounded-lg shadow-sm overflow-hidden"
       >
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 lg:mb-8 border-b border-editorial-divider pb-4">
+        {/* Accordion Header Button */}
+        <button
+          onClick={() => setIsArchitectureOpen(!isArchitectureOpen)}
+          className="w-full flex items-center justify-between p-6 lg:p-10 text-left hover:bg-editorial-sidebar/10 transition-colors select-none group"
+        >
           <div>
-            <div className="text-[9px] lg:text-[10px] uppercase font-bold tracking-widest text-editorial-accent mb-1 text-left">Architecture</div>
-            <h2 className="text-xl lg:text-2xl font-serif italic text-editorial-text text-left font-medium">Select your structure</h2>
+            <div className="text-[9px] lg:text-[10px] uppercase font-bold tracking-widest text-editorial-accent mb-1">Architecture</div>
+            <h2 className="text-xl lg:text-2xl font-serif italic text-editorial-text font-medium flex items-center gap-3">
+              Select your structure
+              <span className="text-xs font-sans font-normal tracking-normal text-editorial-muted opacity-60 group-hover:opacity-100 transition-opacity">
+                ({isArchitectureOpen ? 'Click to hide' : 'Click to show blueprints'})
+              </span>
+            </h2>
           </div>
+          <div className="p-2 border border-editorial-border rounded bg-white">
+            <LucideIcons.ChevronDown 
+              size={18} 
+              className={cn("text-editorial-text transition-transform duration-300", isArchitectureOpen && "rotate-180")} 
+            />
+          </div>
+        </button>
 
-          {/* Search & View Toggles for Architecture Options (Templates) */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-            {/* Search Input */}
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search blueprints..."
-                value={templateSearchQuery}
-                onChange={(e) => setTemplateSearchQuery(e.target.value)}
-                className="w-full sm:w-60 bg-white border border-editorial-border rounded px-3 py-1.5 pl-8 text-xs font-serif italic focus:ring-1 focus:ring-editorial-text focus:border-editorial-text outline-none text-editorial-text transition-all shadow-inner"
-              />
-              <LucideIcons.Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-editorial-muted pointer-events-none" />
-              {templateSearchQuery && (
-                <button 
-                  onClick={() => setTemplateSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-editorial-muted hover:text-editorial-text"
-                  title="Clear search"
-                >
-                  <LucideIcons.X size={12} />
-                </button>
+        <AnimatePresence initial={false}>
+          {isArchitectureOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="border-t border-editorial-divider p-6 lg:p-10 bg-editorial-sidebar/5"
+            >
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 lg:mb-8 border-b border-editorial-divider pb-4">
+                <span className="text-xs text-editorial-accent font-serif italic">Establish the draft vault and structural limits.</span>
+                
+                {/* Search & View Toggles for Architecture Options (Templates) */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  {/* Search Input */}
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search blueprints..."
+                      value={templateSearchQuery}
+                      onChange={(e) => setTemplateSearchQuery(e.target.value)}
+                      className="w-full sm:w-60 bg-white border border-editorial-border rounded px-3 py-1.5 pl-8 text-xs font-serif italic focus:ring-1 focus:ring-editorial-text focus:border-editorial-text outline-none text-editorial-text transition-all shadow-inner"
+                    />
+                    <LucideIcons.Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-editorial-muted pointer-events-none" />
+                    {templateSearchQuery && (
+                      <button 
+                        onClick={() => setTemplateSearchQuery('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-editorial-muted hover:text-editorial-text"
+                        title="Clear search"
+                      >
+                        <LucideIcons.X size={12} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Grid / Line View Selector */}
+                  <div className="flex items-center border border-editorial-border rounded bg-white p-0.5 self-end sm:self-auto">
+                    <button
+                      onClick={() => setTemplateViewMode('grid')}
+                      className={cn(
+                        "p-1.5 rounded transition-all",
+                        templateViewMode === 'grid' 
+                          ? "bg-editorial-sidebar text-editorial-text" 
+                          : "text-editorial-muted hover:text-editorial-accent"
+                      )}
+                      title="Grid view"
+                    >
+                      <LayoutGrid size={14} />
+                    </button>
+                    <button
+                      onClick={() => setTemplateViewMode('list')}
+                      className={cn(
+                        "p-1.5 rounded transition-all",
+                        templateViewMode === 'list' 
+                          ? "bg-editorial-sidebar text-editorial-text" 
+                          : "text-editorial-muted hover:text-editorial-accent"
+                      )}
+                      title="Line view"
+                    >
+                      <List size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {filteredTemplates.length === 0 ? (
+                <div className="text-center py-12 bg-white border border-dashed border-editorial-border rounded p-6">
+                  <LucideIcons.Search className="mx-auto text-editorial-muted mb-4" size={32} />
+                  <p className="text-sm font-serif italic text-editorial-text mb-2">No architectures found matching "{templateSearchQuery}"</p>
+                  <button 
+                    onClick={() => setTemplateSearchQuery('')}
+                    className="mt-4 px-4 py-2 bg-editorial-text text-white text-[9px] font-bold tracking-widest uppercase rounded hover:bg-black transition-all"
+                  >
+                    Clear Architecture Search
+                  </button>
+                </div>
+              ) : templateViewMode === 'grid' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                  {filteredTemplates.map((template) => (
+                    <button
+                      key={template.id}
+                      onClick={() => onCreateBook(template.id)}
+                      className="group text-left p-6 lg:p-8 bg-white border border-editorial-border rounded hover:border-editorial-text hover:shadow-md transition-all duration-300"
+                    >
+                      <div className="mb-6 inline-flex items-center justify-center p-3 lg:p-4 rounded bg-editorial-sidebar border border-editorial-border group-hover:border-editorial-text group-hover:bg-white transition-colors">
+                        <TemplateIcon name={template.icon} className="text-editorial-accent group-hover:text-editorial-text" />
+                      </div>
+                      <h3 className="text-base lg:text-lg font-serif italic font-semibold mb-2 group-hover:text-editorial-text text-left">{template.name}</h3>
+                      <p className="text-[11px] lg:text-xs text-editorial-accent leading-relaxed line-clamp-2 group-hover:text-editorial-text transition-colors text-left font-serif italic">{template.description}</p>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white rounded border border-editorial-border overflow-hidden divide-y divide-editorial-divider">
+                  {filteredTemplates.map((template) => (
+                    <button
+                      key={template.id}
+                      onClick={() => onCreateBook(template.id)}
+                      className="w-full text-left p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-editorial-sidebar/30 group transition-all duration-300"
+                    >
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="p-2 sm:p-3 rounded bg-editorial-sidebar border border-editorial-border group-hover:bg-white group-hover:border-editorial-text transition-colors shrink-0">
+                          <TemplateIcon name={template.icon} className="text-editorial-accent group-hover:text-editorial-text" />
+                        </div>
+                        <div className="space-y-1">
+                          <h3 className="text-sm sm:text-base font-serif italic font-semibold text-editorial-text group-hover:text-black transition-colors">{template.name}</h3>
+                          <p className="text-[11px] sm:text-xs text-editorial-accent leading-relaxed font-serif italic group-hover:text-editorial-text transition-colors">{template.description}</p>
+                        </div>
+                      </div>
+                      <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-editorial-muted group-hover:text-editorial-text transition-colors flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                        Select Blueprint
+                        <LucideIcons.ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
               )}
-            </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
-            {/* Grid / Line View Selector */}
-            <div className="flex items-center border border-editorial-border rounded bg-white p-0.5 self-end sm:self-auto">
-              <button
-                onClick={() => setTemplateViewMode('grid')}
-                className={cn(
-                  "p-1.5 rounded transition-all",
-                  templateViewMode === 'grid' 
-                    ? "bg-editorial-sidebar text-editorial-text" 
-                    : "text-editorial-muted hover:text-editorial-accent"
-                )}
-                title="Grid view"
-              >
-                <LayoutGrid size={14} />
-              </button>
-              <button
-                onClick={() => setTemplateViewMode('list')}
-                className={cn(
-                  "p-1.5 rounded transition-all",
-                  templateViewMode === 'list' 
-                    ? "bg-editorial-sidebar text-editorial-text" 
-                    : "text-editorial-muted hover:text-editorial-accent"
-                )}
-                title="Line view"
-              >
-                <List size={14} />
-              </button>
+      {/* Layman Quick Start Guide Portal & Integrity Guarantee at the Bottom of the Home screen */}
+      <div className="space-y-8 mt-12 mb-10 border-t border-editorial-divider pt-12">
+        <div className="p-6 lg:p-8 bg-white border border-editorial-border rounded-lg text-left shadow-sm">
+          <div className="border-b border-editorial-divider pb-4 mb-6">
+            <span className="text-[9px] uppercase tracking-ultra-editorial font-bold text-editorial-accent">Layman's Quick-Start Portal</span>
+            <h2 className="text-xl lg:text-2xl font-serif italic font-medium text-editorial-text mt-1">What is Micro Book Builder?</h2>
+            <p className="text-xs text-editorial-accent font-serif italic mt-2 leading-relaxed">
+              Micro Book Builder is a serene, private typewriter app that lets you write and publish books without distracting tools or automated AI clutter. Your thoughts are kept 100% secure in your browser.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="w-6 h-6 rounded-full bg-editorial-sidebar border border-editorial-border text-xs font-mono font-bold flex items-center justify-center text-editorial-text">1</span>
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-editorial-text">Adopt a Structure</h4>
+              </div>
+              <p className="text-xs text-editorial-accent leading-relaxed font-serif italic">
+                Scroll to the <strong>Architecture</strong> section, find a blueprint that matches (e.g., Short Story, Novel, or blank pad), and click it to establish the draft vault.
+              </p>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="w-6 h-6 rounded-full bg-editorial-sidebar border border-editorial-border text-xs font-mono font-bold flex items-center justify-center text-editorial-text">2</span>
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-editorial-text">Add & Write Sections</h4>
+              </div>
+              <p className="text-xs text-editorial-accent leading-relaxed font-serif italic">
+                Click your draft card to enter. Click <strong>Add Chapter</strong> to grow your index, drag chapters to reorder them, and type text as auto-save stores each character instantly.
+              </p>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="w-6 h-6 rounded-full bg-editorial-sidebar border border-editorial-border text-xs font-mono font-bold flex items-center justify-center text-editorial-text">3</span>
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-editorial-text">Storyboard & Export</h4>
+              </div>
+              <p className="text-xs text-editorial-accent leading-relaxed font-serif italic">
+                Map out character summaries in <strong>Outline</strong>, link research charts in <strong>Assets</strong>, and hit <strong>Export</strong> to instantly print your work as a publication-ready PDF.
+              </p>
             </div>
           </div>
         </div>
 
-        {filteredTemplates.length === 0 ? (
-          <div className="text-center py-12 bg-white border border-dashed border-editorial-border rounded p-6">
-            <LucideIcons.Search className="mx-auto text-editorial-muted mb-4" size={32} />
-            <p className="text-sm font-serif italic text-editorial-text mb-2">No architectures found matching "{templateSearchQuery}"</p>
-            <button 
-              onClick={() => setTemplateSearchQuery('')}
-              className="mt-4 px-4 py-2 bg-editorial-text text-white text-[9px] font-bold tracking-widest uppercase rounded hover:bg-black transition-all"
-            >
-              Clear Architecture Search
-            </button>
+        {/* Integrity Guarantee */}
+        <div className="p-5 lg:p-6 bg-editorial-sidebar/30 border border-editorial-border rounded flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-white border border-editorial-border rounded-full text-emerald-600 shrink-0">
+              <ShieldCheck size={20} />
+            </div>
+            <div>
+              <h4 className="text-[10px] lg:text-xs font-bold uppercase tracking-widest text-editorial-text text-left">Integrity Guarantee</h4>
+              <p className="text-[10px] lg:text-[11px] text-editorial-accent font-serif italic mt-0.5 text-left leading-snug lg:leading-relaxed">Micro Book Builder is 100% human-driven. No AI writing, suggestions, or auto-generation is present in this studio.</p>
+            </div>
           </div>
-        ) : templateViewMode === 'grid' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-            {filteredTemplates.map((template) => (
-              <button
-                key={template.id}
-                onClick={() => onCreateBook(template.id)}
-                className="group text-left p-6 lg:p-8 bg-white border border-editorial-border rounded hover:border-editorial-text hover:shadow-md transition-all duration-300"
-              >
-                <div className="mb-6 inline-flex items-center justify-center p-3 lg:p-4 rounded bg-editorial-sidebar border border-editorial-border group-hover:border-editorial-text group-hover:bg-white transition-colors">
-                  <TemplateIcon name={template.icon} className="text-editorial-accent group-hover:text-editorial-text" />
-                </div>
-                <h3 className="text-base lg:text-lg font-serif italic font-semibold mb-2 group-hover:text-editorial-text text-left">{template.name}</h3>
-                <p className="text-[11px] lg:text-xs text-editorial-accent leading-relaxed line-clamp-2 group-hover:text-editorial-text transition-colors text-left font-serif italic">{template.description}</p>
-              </button>
-            ))}
+          <div className="w-full sm:w-auto text-[9px] font-mono font-bold text-editorial-muted uppercase tracking-widest border border-editorial-divider px-3 py-1 rounded text-center sm:text-left">
+            Pure Studio Mode
           </div>
-        ) : (
-          <div className="bg-white rounded border border-editorial-border overflow-hidden divide-y divide-editorial-divider">
-            {filteredTemplates.map((template) => (
-              <button
-                key={template.id}
-                onClick={() => onCreateBook(template.id)}
-                className="w-full text-left p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-editorial-sidebar/30 group transition-all duration-300"
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="p-2 sm:p-3 rounded bg-editorial-sidebar border border-editorial-border group-hover:bg-white group-hover:border-editorial-text transition-colors shrink-0">
-                    <TemplateIcon name={template.icon} className="text-editorial-accent group-hover:text-editorial-text" />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="text-sm sm:text-base font-serif italic font-semibold text-editorial-text group-hover:text-black transition-colors">{template.name}</h3>
-                    <p className="text-[11px] sm:text-xs text-editorial-accent leading-relaxed font-serif italic group-hover:text-editorial-text transition-colors">{template.description}</p>
-                  </div>
-                </div>
-                <div className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-editorial-muted group-hover:text-editorial-text transition-colors flex items-center gap-1.5 self-end sm:self-center shrink-0">
-                  Select Blueprint
-                  <LucideIcons.ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

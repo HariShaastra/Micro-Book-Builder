@@ -12,6 +12,7 @@ import { cn, calculateWordCount } from '../lib/utils.ts';
 import RichTextEditor from './RichTextEditor.tsx';
 import ExportModal from './ExportModal.tsx';
 import Logo from './Logo.tsx';
+import { useNotification } from '../contexts/NotificationContext';
 import { 
   DndContext, 
   closestCenter,
@@ -114,6 +115,7 @@ function SortableChapterItem({ chapter, isActive, onSelect, onDelete }: Sortable
 }
 
 export default function Editor({ book, onUpdate, onBack }: EditorProps) {
+  const { notify } = useNotification();
   const [activeChapterId, setActiveChapterId] = useState(book.chapters[0]?.id || '');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -216,17 +218,45 @@ export default function Editor({ book, onUpdate, onBack }: EditorProps) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-white relative">
+      {/* Sidebar Backdrop on Mobile */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-black/25 backdrop-blur-[2px] z-20 md:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar: Fixed, highly-polished layout panel */}
-      <aside className="w-64 sm:w-72 md:w-80 border-r border-editorial-border flex flex-col bg-editorial-sidebar shrink-0 z-10 select-none">
+      <aside className={cn(
+        "w-64 sm:w-72 md:w-80 border-r border-editorial-border flex flex-col bg-editorial-sidebar shrink-0 z-30 select-none transition-transform duration-300 ease-in-out",
+        "fixed inset-y-0 left-0 md:relative md:translate-x-0",
+        isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+      )}>
         {/* Sidebar Header Section */}
         <div className="p-4 sm:p-5 border-b border-editorial-divider bg-white/30 backdrop-blur-sm shrink-0">
-          <div className="mb-4">
+          <div className="mb-4 flex items-center justify-between">
             <Logo compact />
+            {/* Mobile Sidebar Close Button */}
+            <button 
+              onClick={() => setIsSidebarOpen(false)}
+              className="p-1 md:hidden text-editorial-muted hover:text-editorial-text transition-colors"
+              title="Close Sidebar"
+            >
+              <CloseIcon size={16} />
+            </button>
           </div>
           <div className="flex items-center justify-between gap-2 mb-3">
             <div 
               className="text-[9px] uppercase tracking-[0.2em] font-bold text-editorial-accent cursor-pointer hover:text-editorial-text transition-colors flex items-center gap-1" 
-              onClick={onBack}
+              onClick={() => {
+                onBack();
+                setIsSidebarOpen(false);
+              }}
               title="Return to the library archive"
             >
               <ChevronLeft size={11} className="text-editorial-accent/70" />
@@ -290,7 +320,10 @@ export default function Editor({ book, onUpdate, onBack }: EditorProps) {
                     key={chapter.id}
                     chapter={chapter}
                     isActive={activeChapterId === chapter.id}
-                    onSelect={() => setActiveChapterId(chapter.id)}
+                    onSelect={() => {
+                      setActiveChapterId(chapter.id);
+                      setIsSidebarOpen(false);
+                    }}
                     onDelete={() => deleteChapter(chapter.id)}
                   />
                 ))}
@@ -324,7 +357,16 @@ export default function Editor({ book, onUpdate, onBack }: EditorProps) {
           <>
             <header className="px-4 lg:px-8 min-h-[4rem] border-b border-editorial-divider flex items-center justify-between bg-white/80 backdrop-blur-md z-10 sticky top-0">
               {/* Left Actions */}
-              <div className="flex items-center gap-1 sm:gap-4 flex-1">
+              <div className="flex items-center gap-1 sm:gap-2 flex-1">
+                {/* Mobile Menu Toggle Button */}
+                <button
+                  onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                  className="p-2 md:hidden text-editorial-muted hover:text-editorial-text transition-colors mr-1 shrink-0"
+                  title="Toggle Chapters Sidebar"
+                >
+                  <Menu size={20} />
+                </button>
+                
                 <button 
                   onClick={onBack}
                   className="p-2 text-editorial-muted hover:text-editorial-text transition-colors flex items-center gap-2"
@@ -413,18 +455,25 @@ export default function Editor({ book, onUpdate, onBack }: EditorProps) {
                     <div className="w-12 lg:w-16 h-px bg-editorial-border mx-auto mt-6 lg:mt-8"></div>
                   </header>
 
-                  <div className="mb-8 p-4 bg-white border border-editorial-border rounded text-left shadow-sm">
-                    <span className="text-[8px] font-mono font-bold uppercase tracking-widest text-editorial-accent mb-1 block">✍️ Section Guide: Typewriter Mode</span>
-                    <p className="text-[11px] text-editorial-accent leading-relaxed font-serif italic">
-                      <strong>Steps:</strong> Click the chapter headline above to rename this segment (e.g. <em>"Introduction"</em>), then click onto the typewriter page below to draft your content. Every paragraph auto-saves instantly as you type.
-                    </p>
-                  </div>
-
                   <div className="flex-1 pb-20">
                     <RichTextEditor 
                       content={activeChapter.content} 
                       onChange={(content) => updateChapter(activeChapter.id, { content })}
                       isFullscreen={isFullscreen}
+                      onImagePasted={(img) => {
+                        const newAsset = {
+                          id: uuidv4(),
+                          name: img.name || `Pasted_Image_${Date.now()}.png`,
+                          type: 'image/png',
+                          size: img.size,
+                          url: img.url
+                        };
+                        onUpdate({
+                          ...book,
+                          assets: [...(book.assets || []), newAsset]
+                        });
+                        notify('Image pasted and added to Resource Repository', 'success');
+                      }}
                       placeholder="The story begins here... Let your thoughts crystallize. (Click to start writing your masterpiece)"
                     />
                   </div>

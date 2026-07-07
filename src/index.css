@@ -6,14 +6,14 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --font-serif: "Playfair Display", ui-serif, Georgia, serif;
 
-  --color-editorial-bg: #FCFAF7;
-  --color-editorial-text: #1A1A1A;
-  --color-editorial-sidebar: #F5F2ED;
-  --color-editorial-border: #E5E1DA;
-  --color-editorial-accent: #8C867E;
-  --color-editorial-muted: #A69F95;
-  --color-editorial-divider: #F0EBE4;
-  --color-editorial-hover: #EAE5DE;
+  --color-editorial-bg: #FFFDF2;
+  --color-editorial-text: #38240D;
+  --color-editorial-sidebar: #FDFBD4;
+  --color-editorial-border: #EBE5C4;
+  --color-editorial-accent: #C05800;
+  --color-editorial-muted: #713600;
+  --color-editorial-divider: #F6F1D0;
+  --color-editorial-hover: #F0EAB7;
 }
 
 @layer base {

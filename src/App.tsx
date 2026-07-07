@@ -62,6 +62,11 @@ export default function App() {
     setActiveBookId(newBook.id);
   };
 
+  const handleImportBook = (newBook: Book) => {
+    setBooks([newBook, ...books]);
+    setActiveBookId(newBook.id);
+  };
+
   const updateBook = (updatedBook: Book) => {
     setBooks(prev => prev.map(b => b.id === updatedBook.id ? { ...updatedBook, updatedAt: Date.now() } : b));
   };
@@ -90,6 +95,7 @@ export default function App() {
           <Dashboard 
             books={books} 
             onCreateBook={createBook} 
+            onImportBook={handleImportBook}
             onSelectBook={setActiveBookId}
             onDeleteBook={deleteBook} 
           />

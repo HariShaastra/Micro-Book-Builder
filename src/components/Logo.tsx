@@ -65,10 +65,10 @@ export default function Logo({ className = "", compact = false }: { className?: 
 
         <div className="flex flex-col items-start leading-none min-w-0">
           <div className="flex items-baseline gap-1">
-            <span className="text-base font-serif italic font-bold tracking-tight text-editorial-text">Micro</span>
-            <span className="text-[9px] font-bold tracking-[0.15em] uppercase text-editorial-accent">Book</span>
+            <span className="text-base font-serif italic font-bold tracking-tight text-editorial-text">Book</span>
+            <span className="text-[9px] font-bold tracking-[0.15em] uppercase text-editorial-accent">Builder</span>
           </div>
-          <span className="text-[9px] font-mono font-bold tracking-[0.45em] uppercase text-editorial-muted mt-0.5">Builder</span>
+          <span className="text-[9px] font-mono font-bold tracking-[0.45em] uppercase text-editorial-muted mt-0.5">Shaastra</span>
         </div>
       </div>
     );
@@ -186,8 +186,8 @@ export default function Logo({ className = "", compact = false }: { className?: 
         <div className="flex items-center gap-3">
           <div className="h-px w-8 bg-gradient-to-r from-transparent to-editorial-divider" />
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-serif italic font-bold tracking-tight text-editorial-text">Micro</span>
-            <span className="text-sm font-bold tracking-[0.2em] uppercase text-editorial-accent">Book</span>
+            <span className="text-2xl font-serif italic font-bold tracking-tight text-editorial-text">Book</span>
+            <span className="text-sm font-bold tracking-[0.2em] uppercase text-editorial-accent">Builder</span>
           </div>
           <div className="h-px w-8 bg-gradient-to-l from-transparent to-editorial-divider" />
         </div>
@@ -198,7 +198,7 @@ export default function Logo({ className = "", compact = false }: { className?: 
             transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
             className="absolute inset-0 bg-gradient-to-r from-transparent via-editorial-accent/10 to-transparent skew-x-12"
           />
-          <span className="text-[10px] font-bold tracking-[0.6em] uppercase text-editorial-muted relative z-10 transition-colors group-hover:text-editorial-text">Builder</span>
+          <span className="text-[10px] font-bold tracking-[0.6em] uppercase text-editorial-muted relative z-10 transition-colors group-hover:text-editorial-text">Shaastra</span>
         </div>
 
         <motion.div 
