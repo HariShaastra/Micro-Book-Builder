@@ -18,7 +18,7 @@ export default function App() {
 
   // Load books from localStorage on mount
   useEffect(() => {
-    const savedBooks = localStorage.getItem('micro-book-builder-books');
+    const savedBooks = localStorage.getItem('book-builder-shaastra-books') || localStorage.getItem('micro-book-builder-books');
     if (savedBooks) {
       try {
         setBooks(JSON.parse(savedBooks));
@@ -32,7 +32,7 @@ export default function App() {
   // Save books to localStorage when they change
   useEffect(() => {
     if (isInitialized) {
-      localStorage.setItem('micro-book-builder-books', JSON.stringify(books));
+      localStorage.setItem('book-builder-shaastra-books', JSON.stringify(books));
     }
   }, [books, isInitialized]);
 

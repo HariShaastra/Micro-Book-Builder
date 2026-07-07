@@ -149,7 +149,7 @@ export default function Dashboard({ books, onCreateBook, onImportBook, onSelectB
   const [searchQuery, setSearchQuery] = useState('');
   const [templateViewMode, setTemplateViewMode] = useState<'grid' | 'list'>('grid');
   const [templateSearchQuery, setTemplateSearchQuery] = useState('');
-  const [userName, setUserName] = useState(localStorage.getItem('micro-book-user-name') || 'Writer');
+  const [userName, setUserName] = useState(localStorage.getItem('book-builder-shaastra-user-name') || localStorage.getItem('micro-book-user-name') || 'Writer');
   const [user, setUser] = useState<User | null>(null);
   const [handbookTab, setHandbookTab] = useState<'intro' | 'writing' | 'outline' | 'structure' | 'assets' | 'export'>('intro');
   const templatesRef = React.useRef<HTMLDivElement>(null);
@@ -276,9 +276,9 @@ export default function Dashboard({ books, onCreateBook, onImportBook, onSelectB
   React.useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
-      if (u?.displayName && !localStorage.getItem('micro-book-user-name')) {
+      if (u?.displayName && !localStorage.getItem('book-builder-shaastra-user-name') && !localStorage.getItem('micro-book-user-name')) {
         setUserName(u.displayName);
-        localStorage.setItem('micro-book-user-name', u.displayName);
+        localStorage.setItem('book-builder-shaastra-user-name', u.displayName);
       }
     });
     return unsubscribe;
@@ -304,7 +304,7 @@ export default function Dashboard({ books, onCreateBook, onImportBook, onSelectB
 
   React.useEffect(() => {
     const handleStorageChange = () => {
-      setUserName(localStorage.getItem('micro-book-user-name') || 'Writer');
+      setUserName(localStorage.getItem('book-builder-shaastra-user-name') || localStorage.getItem('micro-book-user-name') || 'Writer');
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
@@ -532,7 +532,7 @@ export default function Dashboard({ books, onCreateBook, onImportBook, onSelectB
                   })}
                 </div>
                 <div className="hidden md:block p-5 mt-auto border-t border-editorial-divider bg-white/10 text-center">
-                  <div className="text-[8px] font-mono uppercase tracking-widest text-editorial-accent">Micro Book Studio v1.2</div>
+                  <div className="text-[8px] font-mono uppercase tracking-widest text-editorial-accent">Book Builder Shaastra v1.2</div>
                 </div>
               </div>
 
@@ -560,7 +560,7 @@ export default function Dashboard({ books, onCreateBook, onImportBook, onSelectB
                   {handbookTab === 'intro' && (
                     <div className="space-y-6 font-sans">
                       <div>
-                        <h4 className="text-xl lg:text-2xl font-serif italic text-editorial-text mb-2 text-left">What is Micro Book Builder?</h4>
+                        <h4 className="text-xl lg:text-2xl font-serif italic text-editorial-text mb-2 text-left">What is Book Builder Shaastra?</h4>
                         <p className="text-xs text-editorial-muted leading-relaxed font-serif italic">
                           A peaceful and beautiful digital studio designed specifically for novelists, researchers, memoirists, and essayists. This workspace strips away the noise of bloated text processors so your story can flow naturally.
                         </p>
@@ -1193,9 +1193,9 @@ export default function Dashboard({ books, onCreateBook, onImportBook, onSelectB
         <div className="p-6 lg:p-8 bg-white border border-editorial-border rounded-lg text-left shadow-sm">
           <div className="border-b border-editorial-divider pb-4 mb-6">
             <span className="text-[9px] uppercase tracking-ultra-editorial font-bold text-editorial-accent">Layman's Quick-Start Portal</span>
-            <h2 className="text-xl lg:text-2xl font-serif italic font-medium text-editorial-text mt-1">What is Micro Book Builder?</h2>
+            <h2 className="text-xl lg:text-2xl font-serif italic font-medium text-editorial-text mt-1">What is Book Builder Shaastra?</h2>
             <p className="text-xs text-editorial-accent font-serif italic mt-2 leading-relaxed">
-              Micro Book Builder is a serene, private typewriter app that lets you write and publish books without distracting tools or automated AI clutter. Your thoughts are kept 100% secure in your browser.
+              Book Builder Shaastra is a serene, private typewriter app that lets you write and publish books without distracting tools or automated AI clutter. Your thoughts are kept 100% secure in your browser.
             </p>
           </div>
           
@@ -1238,7 +1238,7 @@ export default function Dashboard({ books, onCreateBook, onImportBook, onSelectB
             </div>
             <div>
               <h4 className="text-[10px] lg:text-xs font-bold uppercase tracking-widest text-editorial-text text-left">Integrity Guarantee</h4>
-              <p className="text-[10px] lg:text-[11px] text-editorial-accent font-serif italic mt-0.5 text-left leading-snug lg:leading-relaxed">Micro Book Builder is 100% human-driven. No AI writing, suggestions, or auto-generation is present in this studio.</p>
+              <p className="text-[10px] lg:text-[11px] text-editorial-accent font-serif italic mt-0.5 text-left leading-snug lg:leading-relaxed">Book Builder Shaastra is 100% human-driven. No AI writing, suggestions, or auto-generation is present in this studio.</p>
             </div>
           </div>
           <div className="w-full sm:w-auto text-[9px] font-mono font-bold text-editorial-muted uppercase tracking-widest border border-editorial-divider px-3 py-1 rounded text-center sm:text-left">

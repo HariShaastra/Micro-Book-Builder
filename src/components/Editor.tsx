@@ -123,7 +123,7 @@ export default function Editor({ book, onUpdate, onBack }: EditorProps) {
   const [lastSaved, setLastSaved] = useState<number | null>(null);
   const [viewTab, setViewTab] = useState<'writing' | 'outline' | 'structure' | 'assets'>('writing');
 
-  const [userName, setUserName] = useState(localStorage.getItem('micro-book-user-name') || 'Writer');
+  const [userName, setUserName] = useState(localStorage.getItem('book-builder-shaastra-user-name') || localStorage.getItem('micro-book-user-name') || 'Writer');
   const [isCompanionOpen, setIsCompanionOpen] = useState(false);
   const [currentTip, setCurrentTip] = useState(0);
 
@@ -140,7 +140,7 @@ export default function Editor({ book, onUpdate, onBack }: EditorProps) {
   const handleUserNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setUserName(val);
-    localStorage.setItem('micro-book-user-name', val);
+    localStorage.setItem('book-builder-shaastra-user-name', val);
     window.dispatchEvent(new Event('storage'));
   };
 

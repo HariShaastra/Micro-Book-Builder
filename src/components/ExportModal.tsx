@@ -44,7 +44,7 @@ export default function ExportModal({ book, onClose }: ExportModalProps) {
         
         doc.setFont('times', 'normal');
         doc.setFontSize(14);
-        doc.text('Written with Micro Book Builder', pageWidth / 2, 250, { align: 'center' });
+        doc.text('Written with Book Builder Shaastra', pageWidth / 2, 250, { align: 'center' });
         
         if (book.description) {
            doc.setFontSize(16);
