@@ -3,78 +3,319 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
-import { Book, TEMPLATES } from './types.ts';
+import React, { useState, useEffect, useRef } from 'react';
+import { Book, Project, TEMPLATES, DocumentType } from './types.ts';
 import Dashboard from './components/Dashboard.tsx';
 import Editor from './components/Editor.tsx';
+import Sidebar, { NavTab } from './components/Sidebar.tsx';
+import NewBookModal from './components/NewBookModal.tsx';
 import { v4 as uuidv4 } from 'uuid';
+import { INITIAL_DEMO_DOCUMENTS, INITIAL_DEMO_PROJECTS } from './lib/demoData.ts';
+import { 
+  auth, 
+  onAuthStateChanged, 
+  User, 
+  saveBookToFirestore, 
+  deleteBookFromFirestore, 
+  subscribeUserBooks 
+} from './lib/firebase.ts';
+import { NotificationProvider, useNotification } from './contexts/NotificationContext.tsx';
+import { Menu, ArrowLeft } from 'lucide-react';
 
-import { NotificationProvider } from './contexts/NotificationContext.tsx';
+const STORAGE_KEY = 'book-builder-shaastra-books';
+const THEME_KEY = 'book-builder-shaastra-theme';
 
 export default function App() {
   const [books, setBooks] = useState<Book[]>([]);
+  const [projects, setProjects] = useState<Project[]>(INITIAL_DEMO_PROJECTS);
   const [activeBookId, setActiveBookId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<NavTab>('home');
+  const [tabHistory, setTabHistory] = useState<NavTab[]>(['home']);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<'synced' | 'syncing' | 'offline' | 'saved_locally' | 'error'>('saved_locally');
 
-  // Load books from localStorage on mount
+  // Modal & Drawer State
+  const [isNewBookModalOpen, setIsNewBookModalOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Theme State
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem(THEME_KEY) as 'light' | 'dark') || 'light';
+  });
+
+  const unsubscribeFirestoreRef = useRef<(() => void) | null>(null);
+  const isSyncingFromFirestoreRef = useRef(false);
+
+  // Synchronize html class with theme
   useEffect(() => {
-    const savedBooks = localStorage.getItem('book-builder-shaastra-books') || localStorage.getItem('micro-book-builder-books');
-    if (savedBooks) {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  const navigateToTab = (newTab: NavTab) => {
+    if (newTab !== activeTab) {
+      setTabHistory(prev => [...prev, newTab]);
+      setActiveTab(newTab);
+    }
+  };
+
+  const handleBack = () => {
+    if (tabHistory.length > 1) {
+      const updated = [...tabHistory];
+      updated.pop(); // remove current active tab
+      const previousTab = updated[updated.length - 1];
+      setTabHistory(updated);
+      setActiveTab(previousTab);
+    } else {
+      setActiveTab('home');
+    }
+  };
+
+  // 1. Initial local load
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
       try {
-        setBooks(JSON.parse(savedBooks));
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setBooks(parsed);
+        } else {
+          setBooks(INITIAL_DEMO_DOCUMENTS);
+        }
       } catch (e) {
         console.error('Failed to parse books from localStorage', e);
+        setBooks(INITIAL_DEMO_DOCUMENTS);
       }
+    } else {
+      setBooks(INITIAL_DEMO_DOCUMENTS);
     }
     setIsInitialized(true);
   }, []);
 
-  // Save books to localStorage when they change
+  // 2. Persist to localStorage whenever books change
   useEffect(() => {
     if (isInitialized) {
-      localStorage.setItem('book-builder-shaastra-books', JSON.stringify(books));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
     }
   }, [books, isInitialized]);
 
-  const createBook = (templateId: string) => {
+  // 3. Listen to Firebase Auth state & attach real-time Firestore sync
+  useEffect(() => {
+    const unsubAuth = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+
+      if (unsubscribeFirestoreRef.current) {
+        unsubscribeFirestoreRef.current();
+        unsubscribeFirestoreRef.current = null;
+      }
+
+      if (user) {
+        setCloudSyncStatus('syncing');
+        const unsubFirestore = subscribeUserBooks(
+          user.uid,
+          async (cloudBooks) => {
+            isSyncingFromFirestoreRef.current = true;
+            if (cloudBooks.length > 0) {
+              setBooks(cloudBooks);
+              setCloudSyncStatus('synced');
+            } else {
+              setCloudSyncStatus('syncing');
+              try {
+                const currentLocalBooks = books.length > 0 ? books : INITIAL_DEMO_DOCUMENTS;
+                for (const book of currentLocalBooks) {
+                  await saveBookToFirestore({ ...book, userId: user.uid }, user.uid);
+                }
+                setCloudSyncStatus('synced');
+              } catch (err) {
+                console.warn('Initial cloud sync notice:', err);
+                setCloudSyncStatus('saved_locally');
+              }
+            }
+            setTimeout(() => {
+              isSyncingFromFirestoreRef.current = false;
+            }, 300);
+          },
+          (error) => {
+            console.warn('Firestore subscription status:', error);
+            setCloudSyncStatus('saved_locally');
+          }
+        );
+
+        unsubscribeFirestoreRef.current = unsubFirestore;
+      } else {
+        setCloudSyncStatus('offline');
+      }
+    });
+
+    return () => {
+      unsubAuth();
+      if (unsubscribeFirestoreRef.current) {
+        unsubscribeFirestoreRef.current();
+      }
+    };
+  }, []);
+
+  // Create Book from Template or Scratch
+  const handleCreateBookFromTemplate = async (templateId?: string) => {
     const template = TEMPLATES.find(t => t.id === templateId) || TEMPLATES[0];
     
     const newBook: Book = {
       id: uuidv4(),
-      title: template.id === 'scratch' ? 'Untitled Book' : `${template.name} Manuscript`,
-      description: '',
+      title: template.id === 'scratch' ? 'Untitled Manuscript' : `${template.name} Manuscript`,
+      subtitle: '',
+      description: template.description || '',
+      type: (['book', 'memoir', 'academic', 'article', 'report', 'research', 'essay', 'anthology', 'plan', 'presentation', 'creative', 'professional', 'scientific', 'thesis', 'notes', 'event', 'sop', 'decision', 'case_study', 'whitepaper', 'prd', 'speech', 'newsletter', 'custom', 'novel', 'children', 'textbook', 'workbook', 'guide', 'handbook', 'portfolio', 'biography', 'autobiography', 'poetry', 'journal', 'project'].includes(template.id) ? template.id : 'book') as DocumentType,
+      blueprintId: template.id,
+      tags: [template.name],
+      isFavorite: false,
+      status: 'draft',
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      status: 'draft',
+      userId: currentUser?.uid,
+      authorName: currentUser?.displayName || localStorage.getItem('book-builder-shaastra-user-name') || 'Author',
       chapters: template.structure.map((title, index) => ({
         id: uuidv4(),
         title,
-        content: '',
+        content: `<h2>${title}</h2><p>Begin writing the opening draft...</p>`,
         isBookmarked: false,
         status: 'draft',
-        wordCount: 0,
+        wordCount: 10,
         order: index
       })),
       assets: []
     };
 
-    setBooks([newBook, ...books]);
+    setBooks(prev => [newBook, ...prev]);
     setActiveBookId(newBook.id);
+
+    if (currentUser) {
+      setCloudSyncStatus('syncing');
+      try {
+        await saveBookToFirestore(newBook, currentUser.uid);
+        setCloudSyncStatus('synced');
+      } catch (e) {
+        console.warn('Cloud save deferred:', e);
+        setCloudSyncStatus('saved_locally');
+      }
+    }
   };
 
-  const handleImportBook = (newBook: Book) => {
-    setBooks([newBook, ...books]);
-    setActiveBookId(newBook.id);
+  // Create Book from Wizard
+  const handleCreateBookFromWizard = async (newBook: Book) => {
+    const withUser: Book = {
+      ...newBook,
+      userId: currentUser?.uid,
+      authorName: currentUser?.displayName || newBook.authorName || 'Author'
+    };
+
+    setBooks(prev => [withUser, ...prev]);
+    setActiveBookId(withUser.id);
+
+    if (currentUser) {
+      setCloudSyncStatus('syncing');
+      try {
+        await saveBookToFirestore(withUser, currentUser.uid);
+        setCloudSyncStatus('synced');
+      } catch (e) {
+        console.warn('Cloud save deferred:', e);
+        setCloudSyncStatus('saved_locally');
+      }
+    }
   };
 
-  const updateBook = (updatedBook: Book) => {
-    setBooks(prev => prev.map(b => b.id === updatedBook.id ? { ...updatedBook, updatedAt: Date.now() } : b));
+  const handleUpdateBook = async (updatedBook: Book) => {
+    const withTimestamp: Book = { 
+      ...updatedBook, 
+      updatedAt: Date.now(),
+      userId: currentUser?.uid || updatedBook.userId 
+    };
+
+    setBooks(prev => prev.map(b => b.id === withTimestamp.id ? withTimestamp : b));
+
+    if (currentUser) {
+      try {
+        await saveBookToFirestore(withTimestamp, currentUser.uid);
+        setCloudSyncStatus('synced');
+      } catch (e) {
+        console.warn('Cloud update deferred:', e);
+        setCloudSyncStatus('saved_locally');
+      }
+    }
   };
 
-  const deleteBook = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this manuscript? This action cannot be undone.')) {
-      setBooks(prev => prev.filter(b => b.id !== id));
-      if (activeBookId === id) setActiveBookId(null);
+  const handleDuplicateBook = async (bookToDuplicate: Book) => {
+    const duplicate: Book = {
+      ...JSON.parse(JSON.stringify(bookToDuplicate)),
+      id: uuidv4(),
+      title: `${bookToDuplicate.title} (Duplicate)`,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      userId: currentUser?.uid
+    };
+
+    setBooks(prev => [duplicate, ...prev]);
+
+    if (currentUser) {
+      try {
+        await saveBookToFirestore(duplicate, currentUser.uid);
+      } catch (e) {
+        console.warn('Cloud duplication error:', e);
+      }
+    }
+  };
+
+  const handleArchiveBook = async (id: string) => {
+    const target = books.find(b => b.id === id);
+    if (!target) return;
+
+    const updated: Book = { ...target, status: 'archived', updatedAt: Date.now() };
+    setBooks(prev => prev.map(b => b.id === id ? updated : b));
+
+    if (currentUser) {
+      try {
+        await saveBookToFirestore(updated, currentUser.uid);
+      } catch (e) {
+        console.warn('Cloud archive error:', e);
+      }
+    }
+  };
+
+  const handleRestoreBook = async (id: string) => {
+    const target = books.find(b => b.id === id);
+    if (!target) return;
+
+    const updated: Book = { ...target, status: 'draft', updatedAt: Date.now() };
+    setBooks(prev => prev.map(b => b.id === id ? updated : b));
+
+    if (currentUser) {
+      try {
+        await saveBookToFirestore(updated, currentUser.uid);
+      } catch (e) {
+        console.warn('Cloud restore error:', e);
+      }
+    }
+  };
+
+  const handleDeleteBook = async (id: string) => {
+    setBooks(prev => prev.filter(b => b.id !== id));
+    if (activeBookId === id) setActiveBookId(null);
+
+    if (currentUser) {
+      try {
+        await deleteBookFromFirestore(id);
+      } catch (e) {
+        console.warn('Cloud deletion error:', e);
+      }
     }
   };
 
@@ -82,26 +323,111 @@ export default function App() {
 
   if (!isInitialized) return null;
 
+  const bookCounts = {
+    total: books.filter(b => b.status !== 'archived').length,
+    drafts: books.filter(b => b.status === 'draft').length,
+    published: books.filter(b => b.status === 'published' || b.status === 'exported').length,
+    archived: books.filter(b => b.status === 'archived').length
+  };
+
   return (
     <NotificationProvider>
-      <div className="min-h-screen bg-editorial-bg text-editorial-text font-serif selection:bg-editorial-text selection:text-white">
+      <div className="min-h-screen bg-editorial-bg text-editorial-text selection:bg-editorial-text selection:text-white flex flex-col lg:flex-row">
         {activeBookId && activeBook ? (
-          <Editor 
-            book={activeBook} 
-            onUpdate={updateBook} 
-            onBack={() => setActiveBookId(null)} 
-          />
+          <div className="flex-1 w-full">
+            <Editor 
+              book={activeBook} 
+              onUpdate={handleUpdateBook} 
+              onBack={() => setActiveBookId(null)}
+              allBooks={books}
+              cloudSyncState={cloudSyncStatus}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+            />
+          </div>
         ) : (
-          <Dashboard 
-            books={books} 
-            onCreateBook={createBook} 
-            onImportBook={handleImportBook}
-            onSelectBook={setActiveBookId}
-            onDeleteBook={deleteBook} 
-          />
+          <div className="flex-1 flex flex-col lg:flex-row w-full min-h-screen">
+            {/* Mobile Top Navigation Bar */}
+            <div className="lg:hidden h-14 bg-editorial-sidebar border-b border-editorial-border px-4 flex items-center justify-between shrink-0 select-none">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsMobileSidebarOpen(true)}
+                  className="p-2 text-editorial-text hover:bg-white/60 rounded-md cursor-pointer"
+                  title="Open Navigation"
+                >
+                  <Menu size={20} />
+                </button>
+                {activeTab !== 'home' && (
+                  <button
+                    onClick={handleBack}
+                    className="p-1.5 bg-white text-editorial-text border border-editorial-border rounded-md text-xs flex items-center gap-1 font-bold"
+                  >
+                    <ArrowLeft size={13} />
+                    <span>Back</span>
+                  </button>
+                )}
+              </div>
+              <div className="text-xs font-serif italic font-bold">
+                Book Builder Shaastra
+              </div>
+              <button
+                onClick={() => setIsNewBookModalOpen(true)}
+                className="p-1.5 px-2.5 bg-editorial-text text-white rounded text-xs uppercase font-bold cursor-pointer"
+              >
+                + New
+              </button>
+            </div>
+
+            {/* Left Sidebar (Desktop + Mobile Drawer) */}
+            <Sidebar
+              currentTab={activeTab}
+              onSelectTab={navigateToTab}
+              onNewBook={() => setIsNewBookModalOpen(true)}
+              isOpenMobile={isMobileSidebarOpen}
+              onCloseMobile={() => setIsMobileSidebarOpen(false)}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+              currentUser={currentUser}
+              cloudSyncState={cloudSyncStatus}
+              bookCounts={bookCounts}
+              onBack={handleBack}
+              canGoBack={tabHistory.length > 1 || activeTab !== 'home'}
+            />
+
+            {/* Main Center Dashboard View */}
+            <main className="flex-1 overflow-y-auto">
+              <Dashboard 
+                books={books} 
+                projects={projects}
+                activeTab={activeTab}
+                onSelectTab={navigateToTab}
+                onCreateBook={handleCreateBookFromTemplate}
+                onOpenNewBookWizard={() => setIsNewBookModalOpen(true)}
+                onImportBook={handleCreateBookFromWizard}
+                onSelectBook={setActiveBookId}
+                onDuplicateBook={handleDuplicateBook}
+                onArchiveBook={handleArchiveBook}
+                onRestoreBook={handleRestoreBook}
+                onDeleteBook={handleDeleteBook}
+                onUpdateBook={handleUpdateBook}
+                currentUser={currentUser}
+                cloudSyncState={cloudSyncStatus}
+                theme={theme}
+                onToggleTheme={toggleTheme}
+                onBack={handleBack}
+              />
+            </main>
+          </div>
         )}
+
+        {/* Global New Book 4-Step Wizard Modal */}
+        <NewBookModal
+          isOpen={isNewBookModalOpen}
+          onClose={() => setIsNewBookModalOpen(false)}
+          onCreateBook={handleCreateBookFromWizard}
+          defaultAuthor={currentUser?.displayName || localStorage.getItem('book-builder-shaastra-user-name') || 'Author'}
+        />
       </div>
     </NotificationProvider>
   );
 }
-

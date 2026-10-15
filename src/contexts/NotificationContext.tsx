@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { X, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 
-type NotificationType = 'success' | 'error' | 'info';
+type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
 interface Notification {
   id: string;
@@ -43,12 +43,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                 "w-72 p-4 rounded shadow-2xl border flex items-start gap-3 pointer-events-auto",
                 n.type === 'success' ? "bg-white border-emerald-100 text-emerald-900" :
                 n.type === 'error' ? "bg-white border-red-100 text-red-900" :
+                n.type === 'warning' ? "bg-white border-amber-200 text-amber-950" :
                 "bg-white border-editorial-divider text-editorial-text"
               )}
             >
               <div className="shrink-0 mt-0.5">
                 {n.type === 'success' && <CheckCircle size={16} className="text-emerald-500" />}
                 {n.type === 'error' && <AlertCircle size={16} className="text-red-500" />}
+                {n.type === 'warning' && <AlertTriangle size={16} className="text-amber-500" />}
                 {n.type === 'info' && <Info size={16} className="text-editorial-accent" />}
               </div>
               <div className="flex-1">

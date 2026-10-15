@@ -22,16 +22,45 @@ service cloud.firestore {
     // Books collection
     match /books/{bookId} {
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow read, update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // Allow read if owner or anyone with link if generalAccess is 'anyone_with_link'
+      allow read: if (isSignedIn() && resource.data.userId == request.auth.uid) ||
+                     (resource.data.shareSettings.generalAccess == 'anyone_with_link') ||
+                     (isSignedIn() && request.auth.token.email != null && resource.data.collaboratorEmails.hasAny([request.auth.token.email]));
+      
+      // Allow update if owner or editor collaborator
+      allow update: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (request.auth.token.email != null && resource.data.editorEmails.hasAny([request.auth.token.email]))
+      );
+      
+      // Only owner can delete
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
 
       // Chapters sub-collection
       match /chapters/{chapterId} {
-        allow read, write: if isSignedIn() && get(/databases/$(database)/documents/books/$(bookId)).data.userId == request.auth.uid;
+        allow read: if (get(/databases/$(database)/documents/books/$(bookId)).data.shareSettings.generalAccess == 'anyone_with_link') ||
+                       (isSignedIn() && (
+                         get(/databases/$(database)/documents/books/$(bookId)).data.userId == request.auth.uid ||
+                         (request.auth.token.email != null && get(/databases/$(database)/documents/books/$(bookId)).data.collaboratorEmails.hasAny([request.auth.token.email]))
+                       ));
+        allow write: if isSignedIn() && (
+          get(/databases/$(database)/documents/books/$(bookId)).data.userId == request.auth.uid ||
+          (request.auth.token.email != null && get(/databases/$(database)/documents/books/$(bookId)).data.editorEmails.hasAny([request.auth.token.email]))
+        );
       }
 
       // Assets sub-collection
       match /assets/{assetId} {
-        allow read, write: if isSignedIn() && get(/databases/$(database)/documents/books/$(bookId)).data.userId == request.auth.uid;
+        allow read: if (get(/databases/$(database)/documents/books/$(bookId)).data.shareSettings.generalAccess == 'anyone_with_link') ||
+                       (isSignedIn() && (
+                         get(/databases/$(database)/documents/books/$(bookId)).data.userId == request.auth.uid ||
+                         (request.auth.token.email != null && get(/databases/$(database)/documents/books/$(bookId)).data.collaboratorEmails.hasAny([request.auth.token.email]))
+                       ));
+        allow write: if isSignedIn() && (
+          get(/databases/$(database)/documents/books/$(bookId)).data.userId == request.auth.uid ||
+          (request.auth.token.email != null && get(/databases/$(database)/documents/books/$(bookId)).data.editorEmails.hasAny([request.auth.token.email]))
+        );
       }
     }
   }

@@ -2,30 +2,36 @@
   "entities": {
     "book": {
       "title": "Book",
-      "description": "Represents a writing project or manuscript.",
+      "description": "Represents a document or manuscript project in Book Builder Shaastra.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "title": { "type": "string" },
-        "status": { "type": "string", "enum": ["draft", "completed", "archived"] },
+        "status": { "type": "string", "enum": ["idea", "draft", "in_progress", "review", "final", "archived"] },
+        "type": { "type": "string" },
+        "blueprintId": { "type": "string" },
         "description": { "type": "string" },
         "notes": { "type": "string" },
         "coverImage": { "type": "string" },
+        "tags": { "type": "array" },
+        "isFavorite": { "type": "boolean" },
         "createdAt": { "type": "number" },
         "updatedAt": { "type": "number" },
-        "userId": { "type": "string" }
+        "userId": { "type": "string" },
+        "authorName": { "type": "string" }
       },
       "required": ["id", "title", "status", "createdAt", "updatedAt", "userId"]
     },
     "chapter": {
       "title": "Chapter",
-      "description": "A section or chapter within a book.",
+      "description": "A structured section, chapter, or block within a document.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "bookId": { "type": "string" },
         "title": { "type": "string" },
         "content": { "type": "string" },
+        "guidance": { "type": "string" },
         "status": { "type": "string" },
         "wordCount": { "type": "number" },
         "isBookmarked": { "type": "boolean" },
@@ -35,7 +41,7 @@
     },
     "asset": {
       "title": "Asset",
-      "description": "A file asset attached to a book.",
+      "description": "A file asset attached to a document.",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -51,15 +57,15 @@
   "firestore": {
     "books": {
       "schema": "book",
-      "description": "Collection of books/manuscripts."
+      "description": "Collection of documents and manuscripts created by authors."
     },
     "books/{bookId}/chapters": {
       "schema": "chapter",
-      "description": "Sub-collection of chapters for a specific book."
+      "description": "Sub-collection of sections and chapters for a specific document."
     },
     "books/{bookId}/assets": {
       "schema": "asset",
-      "description": "Sub-collection of assets for a specific book."
+      "description": "Sub-collection of assets for a specific document."
     }
   }
 }

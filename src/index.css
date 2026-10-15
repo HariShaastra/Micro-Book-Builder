@@ -6,6 +6,19 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --font-serif: "Playfair Display", ui-serif, Georgia, serif;
 
+  --color-editorial-bg: var(--color-editorial-bg);
+  --color-editorial-text: var(--color-editorial-text);
+  --color-editorial-sidebar: var(--color-editorial-sidebar);
+  --color-editorial-border: var(--color-editorial-border);
+  --color-editorial-accent: var(--color-editorial-accent);
+  --color-editorial-muted: var(--color-editorial-muted);
+  --color-editorial-divider: var(--color-editorial-divider);
+  --color-editorial-hover: var(--color-editorial-hover);
+  --color-editorial-card: var(--color-editorial-card);
+  --color-editorial-sheet: var(--color-editorial-sheet);
+}
+
+:root {
   --color-editorial-bg: #FFFDF2;
   --color-editorial-text: #38240D;
   --color-editorial-sidebar: #FDFBD4;
@@ -14,20 +27,439 @@
   --color-editorial-muted: #713600;
   --color-editorial-divider: #F6F1D0;
   --color-editorial-hover: #F0EAB7;
+  --color-editorial-card: #FFFFFF;
+  --color-editorial-sheet: #FFFFFF;
+}
+
+html.dark, .dark {
+  --color-editorial-bg: #140D07;
+  --color-editorial-text: #FFFDF2;
+  --color-editorial-sidebar: #1E140C;
+  --color-editorial-border: #422D1D;
+  --color-editorial-accent: #E57D22;
+  --color-editorial-muted: #D4B08C;
+  --color-editorial-divider: #2C1B10;
+  --color-editorial-hover: #291A0E;
+  --color-editorial-card: #22170E;
+  --color-editorial-sheet: #1C120A;
 }
 
 @layer base {
-  body {
-    @apply font-sans bg-editorial-bg text-editorial-text;
+  html, body {
+    @apply font-sans;
+    background-color: var(--color-editorial-bg);
+    color: var(--color-editorial-text);
+    overflow-x: hidden !important;
+    max-width: 100vw;
+    width: 100%;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }
 
+/* ========================================================================= */
+/* ZERO SIDE-SCROLLING & RESPONSIVE DISCIPLINE */
+/* ========================================================================= */
+* {
+  box-sizing: border-box;
+}
+
+.no-side-scroll {
+  overflow-x: hidden !important;
+  max-width: 100%;
+}
+
+/* ========================================================================= */
+/* COMPREHENSIVE DARK MODE: In dark surroundings -> light text */
+/* In light surroundings -> dark text */
+/* AND: In dark mode, light buttons MUST have dark text! */
+/* ========================================================================= */
+.dark html,
+.dark body,
+html.dark body,
+.dark .bg-editorial-bg {
+  background-color: #140D07 !important;
+  color: #FFFDF2 !important;
+}
+
+.dark .bg-editorial-sidebar,
+.dark .bg-editorial-sidebar\/20,
+.dark .bg-editorial-sidebar\/30,
+.dark .bg-editorial-sidebar\/40,
+.dark .bg-editorial-sidebar\/50,
+.dark .bg-editorial-sidebar\/60,
+.dark .bg-editorial-sidebar\/80 {
+  background-color: #1A110A !important;
+}
+
+.dark .bg-editorial-card {
+  background-color: #22170E !important;
+  color: #FFFDF2 !important;
+}
+
+.dark .bg-white {
+  background-color: #22170E !important;
+  color: #FFFDF2 !important;
+}
+
+.dark .bg-white\/20,
+.dark .bg-white\/30,
+.dark .bg-white\/40,
+.dark .bg-white\/50,
+.dark .bg-white\/60,
+.dark .bg-white\/70,
+.dark .bg-white\/80 {
+  background-color: rgba(34, 23, 14, 0.8) !important;
+  color: #FFFDF2 !important;
+}
+
+.dark .bg-neutral-50,
+.dark .bg-neutral-100,
+.dark .bg-neutral-200,
+.dark .hover\:bg-neutral-50:hover,
+.dark .hover\:bg-neutral-100:hover {
+  background-color: #2A1D13 !important;
+  color: #FFFDF2 !important;
+}
+
+.dark .bg-neutral-900,
+.dark .bg-black {
+  background-color: #0A0604 !important;
+}
+
+/* Text Adaptations in Dark Mode */
+.dark .text-editorial-text,
+.dark .text-neutral-900,
+.dark .text-neutral-800,
+.dark .text-neutral-700,
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-gray-700,
+.dark .text-zinc-900,
+.dark .text-zinc-800,
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-black {
+  color: #FFFDF2 !important;
+}
+
+.dark .text-editorial-muted,
+.dark .text-neutral-600,
+.dark .text-neutral-500,
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-zinc-500,
+.dark .text-slate-500 {
+  color: #D4B08C !important;
+}
+
+.dark .border-editorial-border,
+.dark .border-editorial-border\/40,
+.dark .border-editorial-border\/60,
+.dark .border-neutral-200,
+.dark .border-neutral-300,
+.dark .border-gray-200,
+.dark .border-gray-300 {
+  border-color: #422D1D !important;
+}
+
+.dark .border-editorial-divider {
+  border-color: #2C1B10 !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #1E140C !important;
+  color: #FFFDF2 !important;
+  border-color: #422D1D !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #A88B70 !important;
+}
+
+/* ------------------------------------------------------------------------- */
+/* CRITICAL: LIGHT BUTTONS IN DARK MODE MUST HAVE DARK TEXT                  */
+/* Placed with maximum specificity after general text color overrides       */
+/* ------------------------------------------------------------------------- */
+.dark button.bg-white,
+.dark button[class*="bg-white"],
+.dark button.bg-editorial-sidebar,
+.dark button[class*="bg-editorial-sidebar"],
+.dark button.bg-editorial-bg,
+.dark button[class*="bg-editorial-bg"],
+.dark button.bg-neutral-50,
+.dark button.bg-neutral-100,
+.dark button.bg-neutral-200,
+.dark button.bg-gray-100,
+.dark button.bg-gray-200,
+.dark button.bg-zinc-100,
+.dark button.bg-amber-50,
+.dark button.bg-amber-100,
+.dark button.btn-light,
+.dark .btn-light {
+  background-color: #FFFDF2 !important;
+  color: #140D07 !important;
+  border-color: #D3C3B0 !important;
+}
+
+/* Force all text inside light buttons to be dark in dark mode */
+.dark button.bg-white *,
+.dark button[class*="bg-white"] *,
+.dark button.bg-editorial-sidebar *,
+.dark button[class*="bg-editorial-sidebar"] *,
+.dark button.bg-editorial-bg *,
+.dark button[class*="bg-editorial-bg"] *,
+.dark button.bg-neutral-50 *,
+.dark button.bg-neutral-100 *,
+.dark button.bg-neutral-200 *,
+.dark button.btn-light *,
+.dark .btn-light * {
+  color: #140D07 !important;
+}
+
+/* Overwrite text utility classes inside light buttons */
+.dark button.bg-white [class*="text-"],
+.dark button[class*="bg-white"] [class*="text-"],
+.dark button.bg-editorial-sidebar [class*="text-"],
+.dark button[class*="bg-editorial-sidebar"] [class*="text-"],
+.dark button.bg-neutral-100 [class*="text-"],
+.dark button.bg-neutral-200 [class*="text-"],
+.dark button.btn-light [class*="text-"] {
+  color: #140D07 !important;
+}
+
+/* Ensure SVG icons inside light buttons are dark */
+.dark button.bg-white svg,
+.dark button[class*="bg-white"] svg,
+.dark button.bg-editorial-sidebar svg,
+.dark button[class*="bg-editorial-sidebar"] svg,
+.dark button.bg-neutral-100 svg,
+.dark button.btn-light svg {
+  color: #140D07 !important;
+  stroke: #140D07 !important;
+}
+
+.dark button.bg-white:hover,
+.dark button[class*="bg-white"]:hover,
+.dark button.bg-editorial-sidebar:hover,
+.dark button[class*="bg-editorial-sidebar"]:hover,
+.dark button.bg-neutral-100:hover {
+  background-color: #EDE3CF !important;
+  color: #0A0604 !important;
+}
+
+/* Accent Buttons in Dark Mode: Rich Warm Amber with Pure Crisp White Text */
+.dark button.bg-editorial-accent,
+.dark button[class*="bg-editorial-accent"],
+.dark .bg-editorial-accent button {
+  background-color: #E57D22 !important;
+  color: #FFFFFF !important;
+}
+
+.dark button.bg-editorial-accent *,
+.dark button[class*="bg-editorial-accent"] * {
+  color: #FFFFFF !important;
+}
+
+.dark button.bg-editorial-accent svg,
+.dark button[class*="bg-editorial-accent"] svg {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
+}
+
+/* Prose & Typography */
 .prose {
   @apply font-serif text-lg leading-relaxed text-editorial-text;
 }
 
 .prose h1, .prose h2, .prose h3 {
   @apply font-serif font-semibold text-editorial-text;
+}
+
+.dark .prose {
+  color: #FFFDF2 !important;
+}
+
+.dark .prose h1,
+.dark .prose h2,
+.dark .prose h3,
+.dark .prose h4,
+.dark .prose strong,
+.dark .prose p,
+.dark .prose li,
+.dark .prose td,
+.dark .prose th {
+  color: #FFFDF2 !important;
+}
+
+/* Word-like Native & Tiptap Tables */
+.prose table,
+.editorial-table,
+.ProseMirror table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.95rem;
+}
+
+.prose table th,
+.editorial-table th,
+.ProseMirror th {
+  background-color: rgba(253, 251, 212, 0.7);
+  border: 1px solid #EBE5C4;
+  padding: 0.6rem 0.8rem;
+  font-weight: 600;
+  text-align: left;
+  color: #38240D;
+}
+
+.dark .prose table th,
+.dark .editorial-table th,
+.dark .ProseMirror th {
+  background-color: #2A1D13 !important;
+  border-color: #45301F !important;
+  color: #FFFDF2 !important;
+}
+
+.prose table td,
+.editorial-table td,
+.ProseMirror td {
+  border: 1px solid #EBE5C4;
+  padding: 0.55rem 0.8rem;
+  color: #38240D;
+}
+
+.dark .prose table td,
+.dark .editorial-table td,
+.dark .ProseMirror td {
+  border-color: #45301F !important;
+  color: #F0E8DC !important;
+}
+
+/* Word-like Callout Boxes */
+.callout-box {
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  border-radius: 0.5rem;
+  font-family: var(--font-serif);
+  line-height: 1.6;
+}
+
+.callout-info {
+  background-color: rgba(30, 58, 138, 0.06);
+  border-left: 4px solid #2563EB;
+}
+.dark .callout-info {
+  background-color: rgba(37, 99, 235, 0.16) !important;
+  border-left-color: #60A5FA !important;
+  color: #FFFDF2 !important;
+}
+
+.callout-warning {
+  background-color: rgba(217, 119, 6, 0.08);
+  border-left: 4px solid #D97706;
+}
+.dark .callout-warning {
+  background-color: rgba(217, 119, 6, 0.18) !important;
+  border-left-color: #FBBF24 !important;
+  color: #FFFDF2 !important;
+}
+
+.callout-tip {
+  background-color: rgba(5, 150, 105, 0.08);
+  border-left: 4px solid #059669;
+}
+.dark .callout-tip {
+  background-color: rgba(5, 150, 105, 0.18) !important;
+  border-left-color: #34D399 !important;
+  color: #FFFDF2 !important;
+}
+
+.callout-quote {
+  background-color: rgba(192, 88, 0, 0.06);
+  border-left: 4px solid #C05800;
+  font-style: italic;
+}
+.dark .callout-quote {
+  background-color: rgba(229, 125, 34, 0.16) !important;
+  border-left-color: #E57D22 !important;
+  color: #FFFDF2 !important;
+}
+
+.callout-note {
+  background-color: rgba(113, 54, 0, 0.05);
+  border: 1px solid var(--color-editorial-border);
+}
+.dark .callout-note {
+  background-color: rgba(212, 176, 140, 0.1) !important;
+  border-color: #422D1D !important;
+  color: #FFFDF2 !important;
+}
+
+/* ========================================================================= */
+/* PAGE BORDER ARCHITECTURAL STYLES */
+/* ========================================================================= */
+.page-border-none {
+  border: none !important;
+}
+
+.page-border-classic-single {
+  border: 1px solid var(--color-editorial-border) !important;
+  padding: 1.5rem !important;
+}
+
+.page-border-classic-double {
+  border: 4px double var(--color-editorial-text) !important;
+  padding: 1.5rem !important;
+}
+
+.page-border-oxford {
+  border: 3px solid var(--color-editorial-text) !important;
+  outline: 1px solid var(--color-editorial-text) !important;
+  outline-offset: -6px !important;
+  padding: 1.75rem !important;
+}
+
+.page-border-ornate-corners {
+  position: relative !important;
+  border: 1px solid var(--color-editorial-border) !important;
+  padding: 1.75rem !important;
+}
+.page-border-ornate-corners::before {
+  content: "✦";
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  font-size: 14px;
+  color: var(--color-editorial-accent);
+}
+.page-border-ornate-corners::after {
+  content: "✦";
+  position: absolute;
+  bottom: 6px;
+  right: 8px;
+  font-size: 14px;
+  color: var(--color-editorial-accent);
+}
+
+.page-border-vintage-filigree {
+  border: 2px dashed var(--color-editorial-accent) !important;
+  padding: 1.5rem !important;
+}
+
+.page-border-modern-accent {
+  border-top: 4px solid var(--color-editorial-accent) !important;
+  border-bottom: 4px solid var(--color-editorial-accent) !important;
+  border-left: 1px solid var(--color-editorial-border) !important;
+  border-right: 1px solid var(--color-editorial-border) !important;
+  padding: 1.5rem !important;
+}
+
+.page-border-manuscript-frame {
+  box-shadow: inset 0 0 0 1px var(--color-editorial-border), inset 0 0 0 5px var(--color-editorial-bg), inset 0 0 0 6px var(--color-editorial-border) !important;
+  padding: 1.75rem !important;
 }
 
 .tracking-widest-editorial {
@@ -38,10 +470,10 @@
   letter-spacing: 0.4em;
 }
 
-/* Exquisite thin scrollbars for our digital typewriter studio */
+/* Scrollbars */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -50,20 +482,19 @@
 
 ::-webkit-scrollbar-thumb {
   background: var(--color-editorial-border);
-  border-radius: 2px;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-editorial-accent);
 }
 
-/* Hide scrollbars but keep scrolling */
 .scrollbar-hide {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 .scrollbar-hide::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
+  display: none;
 }
 
 /* Tiptap Placeholder Native Styling */
@@ -71,12 +502,20 @@
 .ProseMirror p.is-empty::before {
   content: attr(data-placeholder);
   float: left;
-  color: #A69F95; /* editorial-muted */
+  color: var(--color-editorial-muted);
   pointer-events: none;
   height: 0;
   font-style: italic;
   opacity: 0.5;
 }
 
-
-
+/* Print styling */
+@media print {
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
