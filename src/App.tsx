@@ -20,9 +20,11 @@ import {
   subscribeUserBooks 
 } from './lib/firebase.ts';
 import { NotificationProvider, useNotification } from './contexts/NotificationContext.tsx';
-import { Menu, ArrowLeft } from 'lucide-react';
+import { Menu, ArrowLeft, Sun, Moon } from 'lucide-react';
+import Logo from './components/Logo.tsx';
 
-const STORAGE_KEY = 'book-builder-shaastra-books';
+const STORAGE_KEY = 'book-builder-shaastra-books-v4';
+const PREV_STORAGE_KEY = 'book-builder-shaastra-books';
 const THEME_KEY = 'book-builder-shaastra-theme';
 
 export default function App() {
@@ -88,7 +90,10 @@ export default function App() {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setBooks(parsed);
+          // Merge any newly introduced demo blueprints if missing
+          const existingIds = new Set(parsed.map((b: Book) => b.id));
+          const missingDemos = INITIAL_DEMO_DOCUMENTS.filter(d => !existingIds.has(d.id));
+          setBooks([...parsed, ...missingDemos]);
         } else {
           setBooks(INITIAL_DEMO_DOCUMENTS);
         }
@@ -97,7 +102,18 @@ export default function App() {
         setBooks(INITIAL_DEMO_DOCUMENTS);
       }
     } else {
-      setBooks(INITIAL_DEMO_DOCUMENTS);
+      // Migrate any non-demo custom user books from older storage key
+      const prevSaved = localStorage.getItem(PREV_STORAGE_KEY);
+      let userCustomBooks: Book[] = [];
+      if (prevSaved) {
+        try {
+          const prevParsed = JSON.parse(prevSaved);
+          if (Array.isArray(prevParsed)) {
+            userCustomBooks = prevParsed.filter((b: Book) => !b.id.startsWith('demo-') && !b.id.startsWith('book-'));
+          }
+        } catch (_) {}
+      }
+      setBooks([...INITIAL_DEMO_DOCUMENTS, ...userCustomBooks]);
     }
     setIsInitialized(true);
   }, []);
@@ -332,7 +348,7 @@ export default function App() {
 
   return (
     <NotificationProvider>
-      <div className="min-h-screen bg-editorial-bg text-editorial-text selection:bg-editorial-text selection:text-white flex flex-col lg:flex-row">
+      <div className="min-h-screen bg-editorial-bg text-editorial-text selection:bg-amber-600 selection:text-white dark:selection:bg-amber-500 dark:selection:text-stone-950 flex flex-col lg:flex-row w-full max-w-full overflow-x-hidden">
         {activeBookId && activeBook ? (
           <div className="flex-1 w-full">
             <Editor 
@@ -348,34 +364,50 @@ export default function App() {
         ) : (
           <div className="flex-1 flex flex-col lg:flex-row w-full min-h-screen">
             {/* Mobile Top Navigation Bar */}
-            <div className="lg:hidden h-14 bg-editorial-sidebar border-b border-editorial-border px-4 flex items-center justify-between shrink-0 select-none">
-              <div className="flex items-center gap-2">
+            <div className="lg:hidden h-14 bg-editorial-sidebar border-b border-editorial-border px-3 sm:px-4 flex items-center justify-between shrink-0 select-none">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <button
                   onClick={() => setIsMobileSidebarOpen(true)}
-                  className="p-2 text-editorial-text hover:bg-white/60 rounded-md cursor-pointer"
+                  className="p-1.5 sm:p-2 text-editorial-text hover:bg-black/5 dark:hover:bg-white/10 rounded-md cursor-pointer transition-colors"
                   title="Open Navigation"
+                  aria-label="Open Navigation"
                 >
                   <Menu size={20} />
                 </button>
                 {activeTab !== 'home' && (
                   <button
                     onClick={handleBack}
-                    className="p-1.5 bg-white text-editorial-text border border-editorial-border rounded-md text-xs flex items-center gap-1 font-bold"
+                    className="p-1.5 bg-white dark:bg-stone-800 text-editorial-text dark:text-stone-100 border border-editorial-border dark:border-stone-700 rounded-md text-xs flex items-center gap-1 font-bold shadow-2xs hover:border-editorial-accent cursor-pointer"
                   >
                     <ArrowLeft size={13} />
-                    <span>Back</span>
+                    <span className="hidden xs:inline">Back</span>
                   </button>
                 )}
               </div>
-              <div className="text-xs font-serif italic font-bold">
-                Book Builder Shaastra
+
+              {/* Animated Kinetic Architecture Logo in Mobile Header */}
+              <div className="flex items-center justify-center">
+                <Logo compact className="scale-90 sm:scale-100 origin-center" />
               </div>
-              <button
-                onClick={() => setIsNewBookModalOpen(true)}
-                className="p-1.5 px-2.5 bg-editorial-text text-white rounded text-xs uppercase font-bold cursor-pointer"
-              >
-                + New
-              </button>
+
+              <div className="flex items-center gap-2">
+                {/* 1-Tap Theme Toggle for Mobile & Tablet */}
+                <button
+                  onClick={toggleTheme}
+                  className="p-1.5 rounded-lg bg-white dark:bg-stone-800 text-editorial-text dark:text-stone-100 border border-editorial-border dark:border-stone-700 hover:border-editorial-accent transition-colors shadow-2xs cursor-pointer"
+                  title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                  aria-label="Toggle Dark and Light Mode"
+                >
+                  {theme === 'dark' ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} className="text-editorial-text" />}
+                </button>
+
+                <button
+                  onClick={() => setIsNewBookModalOpen(true)}
+                  className="p-1.5 px-2.5 sm:px-3 bg-editorial-accent text-white hover:bg-editorial-accent/90 rounded text-xs uppercase font-bold tracking-wider shadow-xs cursor-pointer flex items-center gap-1"
+                >
+                  <span>+ New</span>
+                </button>
+              </div>
             </div>
 
             {/* Left Sidebar (Desktop + Mobile Drawer) */}

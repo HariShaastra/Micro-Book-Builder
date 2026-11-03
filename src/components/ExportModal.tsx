@@ -29,6 +29,7 @@ export default function ExportModal({ book, onClose }: ExportModalProps) {
   const { notify } = useNotification();
   const [isExporting, setIsExporting] = useState(false);
   const [format, setFormat] = useState<'pdf' | 'docx' | 'markdown' | 'txt'>('pdf');
+  const [exportPageSize, setExportPageSize] = useState<string>(book.pageSettings?.size || 'A4');
   const [includeCover, setIncludeCover] = useState(true);
   const [includeTOC, setIncludeTOC] = useState(true);
   const [includeReferences, setIncludeReferences] = useState(true);
@@ -55,9 +56,18 @@ export default function ExportModal({ book, onClose }: ExportModalProps) {
       const sanitizedFilename = (book.title || 'Manuscript').replace(/[^a-zA-Z0-9_-]/g, '_');
 
       if (format === 'pdf') {
+        const chosenSize = (exportPageSize || book.pageSettings?.size || 'A4').toLowerCase();
+        let pdfFormat: any = 'a4';
+        if (chosenSize === 'letter') pdfFormat = 'letter';
+        else if (chosenSize === 'a3') pdfFormat = 'a3';
+        else if (chosenSize === 'a5') pdfFormat = 'a5';
+        else if (chosenSize === 'legal') pdfFormat = 'legal';
+        else if (chosenSize.includes('6x9')) pdfFormat = [152.4, 228.6];
+        else pdfFormat = 'a4';
+
         const doc = new jsPDF({
           unit: 'mm',
-          format: 'a4',
+          format: pdfFormat,
         });
 
         const margin = 20;
@@ -84,7 +94,7 @@ export default function ExportModal({ book, onClose }: ExportModalProps) {
 
           doc.setFontSize(11);
           doc.setFont('times', 'italic');
-          doc.text(book.publisher || 'Published with Book Builder Shaastra', pageWidth / 2, 250, { align: 'center' });
+          doc.text(book.publisher || 'Crafted with Book Builder Shaastra', pageWidth / 2, 250, { align: 'center' });
 
           doc.addPage();
         }
@@ -287,7 +297,7 @@ export default function ExportModal({ book, onClose }: ExportModalProps) {
         <div className="p-5 border-b border-editorial-divider flex justify-between items-center bg-editorial-sidebar/30">
           <div>
             <div className="text-[10px] uppercase font-mono font-bold text-editorial-accent mb-1">
-              Publishing & Distribution
+              Archival & Distribution
             </div>
             <h2 className="text-xl font-serif italic text-editorial-text font-bold">
               Export Manuscript
@@ -390,6 +400,31 @@ export default function ExportModal({ book, onClose }: ExportModalProps) {
             </div>
           </div>
 
+          {/* Page Format Selector (for PDF & DOCX) */}
+          {(format === 'pdf' || format === 'docx') && (
+            <div className="space-y-1.5 pt-3 border-t border-editorial-divider">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-wider text-editorial-text block">
+                  Page Format / Trim Size
+                </label>
+                <span className="text-[10px] font-mono text-editorial-muted">Default: A4</span>
+              </div>
+              <select
+                value={exportPageSize}
+                onChange={(e) => setExportPageSize(e.target.value)}
+                className="w-full bg-white border border-editorial-border rounded-lg p-2 text-xs font-medium text-editorial-text outline-none focus:border-editorial-accent cursor-pointer"
+              >
+                <option value="A4">A4 (210 × 297 mm) — Default MS Word Standard</option>
+                <option value="Letter">US Letter (8.5" × 11" / 216 × 279 mm)</option>
+                <option value="A3">A3 (297 × 420 mm) — Large Spread Format</option>
+                <option value="A5">A5 (148 × 210 mm) — Compact Handbook</option>
+                <option value="Legal">US Legal (8.5" × 14" / 216 × 356 mm)</option>
+                <option value="Executive">Executive (7.25" × 10.5")</option>
+                <option value="Trade 6x9">US Trade 6" × 9" (Standard Volume)</option>
+              </select>
+            </div>
+          )}
+
           {/* Options checkboxes */}
           <div className="space-y-3 pt-3 border-t border-editorial-divider">
             <label className="text-xs font-bold uppercase tracking-wider text-editorial-text block">
@@ -447,7 +482,7 @@ export default function ExportModal({ book, onClose }: ExportModalProps) {
           <button
             onClick={handleExport}
             disabled={isExporting}
-            className="bg-editorial-text text-white hover:bg-black px-6 py-2.5 rounded font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-md transition-colors cursor-pointer"
+            className="bg-editorial-accent hover:bg-editorial-accent/90 text-white dark:bg-amber-600 dark:hover:bg-amber-500 dark:text-white px-6 py-2.5 rounded font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-md transition-colors cursor-pointer"
           >
             <Download size={14} />
             <span>{isExporting ? 'Generating Document...' : `Download ${format.toUpperCase()}`}</span>

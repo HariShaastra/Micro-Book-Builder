@@ -4,12 +4,103 @@
  */
 
 import { Book, Project } from '../types.ts';
-import { v4 as uuidv4 } from 'uuid';
 
 export const INITIAL_DEMO_DOCUMENTS: Book[] = [
-  // 1. The River Remembers (Children's Illustrated Story)
+  // 1. BLANK / CUSTOM: The Writer's Notebook
   {
-    id: 'demo-river-remembers',
+    id: 'demo-scratch',
+    title: "The Writer's Notebook",
+    subtitle: "Fragmentary Reflections on Craft, Silence, and Form",
+    description: "A freeform literary commonplace book tracking the genesis of prose fragments, observing morning light, and testing rhythmic cadences.",
+    type: 'scratch',
+    blueprintId: 'scratch',
+    tags: ['Commonplace', 'Essay', 'Craft of Writing', 'Reflections'],
+    isFavorite: false,
+    status: 'draft',
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 14,
+    updatedAt: Date.now() - 1000 * 60 * 60 * 1,
+    authorName: 'Siddharth Rao',
+    publisher: 'Shaastra Independent Folios',
+    language: 'English',
+    genre: 'Literary Non-Fiction',
+    targetAudience: 'Writers, Seekers, Solitary Thinkers',
+    copyrightYear: 2026,
+    isbn: '978-81-945621-9-7',
+    cover: {
+      title: "The Writer's Notebook",
+      subtitle: "Fragmentary Reflections on Craft",
+      author: 'Siddharth Rao',
+      bgColor: '#1E293B',
+      textColor: '#F8FAFC',
+      accentColor: '#38BDF8',
+      styleTemplate: 'minimal',
+      alignment: 'left',
+      borderStyle: 'single'
+    },
+    frontMatter: {
+      titlePage: {
+        enabled: true,
+        title: "The Writer's Notebook",
+        subtitle: "Fragmentary Reflections on Craft, Silence, and Form",
+        author: 'Siddharth Rao',
+        publisher: 'Shaastra Independent Folios',
+        year: 2026
+      },
+      dedication: {
+        enabled: true,
+        text: 'To the blank page—which judges no tentative sentence.'
+      },
+      preface: {
+        enabled: true,
+        title: 'Note to the Reader',
+        content: 'These leaves are not meant as commandments. They are field observations gathered while wrestling with sentences in the pre-dawn stillness of Chennai.'
+      },
+      aboutAuthor: {
+        enabled: true,
+        bio: 'Siddharth Rao writes prose and essays on literature, craft, and architectural history.'
+      }
+    },
+    chapters: [
+      {
+        id: 'scratch-ch-1',
+        title: 'I. On Beginning Before Readiness',
+        content: `<h1>I. On Beginning Before Readiness</h1>
+<p class="lead">Every writer waits for conditions that will never arrive: undisturbed silence, absolute certainty, and the mythical afternoon where anxiety dissolves into pure eloquence.</p>
+<p>The truth taught by the masters of the <em>Shaastra</em> tradition is far humbler: clarity is not the precursor to writing; it is the residue left behind by the friction of ink upon paper. One begins with an uneven syllable, a half-remembered silhouette, or the cadence of rain beating upon a galvanized tin shade.</p>
+<blockquote>
+  <p>"Do not polish a stone that has not yet been hauled from the quarry."</p>
+</blockquote>
+<p>Keep the hand moving. The editor in your mind is an auditor; the writer is a laborer at dawn.</p>`,
+        isBookmarked: true,
+        status: 'draft',
+        wordCount: 120,
+        order: 0,
+        guidance: 'A freeform exploration of how to start a project without paralysis.'
+      },
+      {
+        id: 'scratch-ch-2',
+        title: 'II. The Architecture of the Sentence',
+        content: `<h2>II. The Architecture of the Sentence</h2>
+<p>A good sentence resembles a dry-stone wall in the Nilgiris: no cement is used, yet each boulder rests against the other through balance, gravity, and honest edges.</p>
+<p>Notice the three duties of every sentence:</p>
+<ul>
+  <li><strong>To bear weight:</strong> It must carry its thought without groaning under superfluous adverbs.</li>
+  <li><strong>To provide momentum:</strong> It must lean forward into the sentence that follows.</li>
+  <li><strong>To leave music:</strong> Even read silently, the ear must savor its vowels.</li>
+</ul>`,
+        isBookmarked: false,
+        status: 'in_progress',
+        wordCount: 88,
+        order: 1,
+        guidance: 'Study syntax, cadence, and restraint.'
+      }
+    ],
+    assets: []
+  },
+
+  // 2. CHILDREN'S STORY: The River Remembers
+  {
+    id: 'demo-children',
     title: 'The River Remembers',
     subtitle: 'An Illustrated Tale of the Kaveri and a Village Girl',
     description: 'A gentle, beautifully illustrated children\'s tale exploring the bond between ten-year-old Meenakshi, the ancient Kaveri river, and the migratory painted storks that herald the annual monsoon.',
@@ -49,605 +140,858 @@ export const INITIAL_DEMO_DOCUMENTS: Book[] = [
       },
       dedication: {
         enabled: true,
-        text: 'For all children who pause to listen to the whispers of our sacred streams, and for the storks who never forget the path home.'
+        text: 'For all children who pause to listen to the whispers of our ancestral streams, and for the storks who never forget the path home.'
       },
       preface: {
         enabled: true,
         title: 'Author’s Invitation',
-        content: 'Rivers in India are not mere bodies of flowing water; they are our grandmothers who carry centuries of lullabies, harvest celebrations, and cautionary tales. When I sat by the sandbanks of Tiruchirappalli as a child, my grandfather taught me to read the river’s ripples like pages in an ever-turning book.'
+        content: 'Rivers in India are not mere bodies of flowing water; they are our grandmothers who carry centuries of lullabies, harvest celebrations, and cautionary tales.'
       },
       aboutAuthor: {
         enabled: true,
-        bio: 'Ananya Sundaram is a children’s author and birdwatcher who lives in Thanjavur. She conducts river-walk storytelling workshops for government school students across Tamil Nadu.',
-        location: 'Thanjavur, Tamil Nadu'
+        bio: 'Ananya Sundaram is a children\'s author and naturalist based near Grand Anicut, Tamil Nadu.'
       }
-    },
-    references: [
-      {
-        id: 'ref-1',
-        type: 'book',
-        author: 'Salim Ali',
-        title: 'The Book of Indian Birds',
-        publisher: 'Bombay Natural History Society',
-        year: '2002',
-        notes: 'Source for migratory plumage of Painted Storks (Mycteria leucocephala).'
-      },
-      {
-        id: 'ref-2',
-        type: 'article',
-        author: 'Krishnan, M.',
-        title: 'Nights by the Kaveri Sandbanks',
-        publisher: 'The Statesman Archives',
-        year: '1974',
-        notes: 'Atmospheric descriptions of riverbed breeze and coracle steering.'
-      }
-    ],
-    characters: [
-      {
-        id: 'char-1',
-        name: 'Meenakshi',
-        role: 'Protagonist',
-        description: 'A curious 10-year-old girl who lives with her potter grandfather at the bend of the river.',
-        appearance: 'Bright inquisitive eyes, twin braided hair tied with yellow ribbons, carrying a brass water-pot.',
-        notes: 'Possesses the rare patience to sit motionless until kingfishers perch nearby.'
-      },
-      {
-        id: 'char-2',
-        name: 'Thatha (Subbiah the Potter)',
-        role: 'Mentor',
-        description: 'Meenakshi\'s gentle grandfather who shapes terracotta bells and speaks to the clay.',
-        appearance: 'Weathered hands stained with river silt, silver mustache, cotton veshti.',
-        notes: 'Remembers the great floods of 1961 and the ancient course of the distributary canals.'
-      }
-    ],
-    bookNotes: [
-      {
-        id: 'note-1',
-        title: 'Sensory notes for Chapter 3',
-        category: 'plot',
-        content: 'Emphasize the sudden stillness in the tamarind grove just before the thunderstorm breaks. The smell of petrichor on dried river clay.',
-        createdAt: Date.now() - 1000 * 60 * 60 * 20,
-        updatedAt: Date.now() - 1000 * 60 * 60 * 20
-      }
-    ],
-    pageSettings: {
-      size: 'A5',
-      margins: 'normal',
-      orientation: 'portrait',
-      headerText: 'The River Remembers',
-      footerText: 'Shaastra Bal Sahitya',
-      showPageNumbers: true,
-      chapterNumbering: true
-    },
-    tocSettings: {
-      enabled: true,
-      style: 'dots',
-      showPageNumbers: true,
-      showSubsections: false
     },
     chapters: [
       {
-        id: uuidv4(),
-        title: 'Prologue: The River Awakes',
-        content: `<h1>Prologue: The River Awakes</h1><p class="lead"><em>Before the temple gongs sounded at four in the morning, the Kaveri was already awake.</em></p><p>She moved like a creature of dark silver, sliding past the stone steps of the bathing ghat where sleep still clung to the whitewashed temple towers. On cool mornings, steam rose from the water’s surface in delicate curls, carrying the faint perfume of night-flowering jasmine discarded from yesterday’s festival chariot.</p><p>For fifty miles upstream and fifty miles down, people said the river never spoke to anyone directly. But Meenakshi knew better. If you pressed your ear to the hollow bamboo poles anchored by the ferry dock, you could hear the low humming song of pebbles rolling across the riverbed five feet beneath the current.</p>`,
+        id: 'children-ch-1',
+        title: 'Chapter 1: The Singing Sandbanks',
+        content: `<h1>Chapter 1: The Singing Sandbanks</h1>
+<p class="lead">Long before the temple bell rang for the morning <em>aarathi</em>, ten-year-old Meenakshi was already barefoot upon the damp sands of the Kaveri river.</p>
+<p>The river here was wide and patient. In late summer, it broke into dozens of braided silver ribbons, weaving between islands of emerald river reeds and smooth granite boulders polished round by thousands of monsoons.</p>
+<p>"Meenu! Do not venture beyond the second boulder!" called her grandfather, Periyavar, carrying a woven bamboo basket filled with fresh tulsi leaves and brass vessels for morning ablutions.</p>
+<p>"I am only watching the water-skaters, Thatha!" she called back, her toes wriggling into the cool mud where the water rippled like accordion pleats.</p>
+<p>Suddenly, a shadow swooped overhead—broad wings tipped in rose-pink and black. A solitary painted stork circled twice, tilted its wings against the morning breeze, and landed with a gentle splash upon the sandbar.</p>`,
         isBookmarked: true,
         status: 'final',
-        wordCount: 132,
+        wordCount: 168,
         order: 0,
-        blocks: [
-          {
-            id: 'b-1',
-            type: 'heading',
-            content: 'Prologue: The River Awakes',
-            meta: { headingLevel: 1 }
-          },
-          {
-            id: 'b-2',
-            type: 'quote',
-            content: 'Before the temple gongs sounded at four in the morning, the Kaveri was already awake.',
-            meta: { calloutType: 'quote' }
-          },
-          {
-            id: 'b-3',
-            type: 'paragraph',
-            content: 'She moved like a creature of dark silver, sliding past the stone steps of the bathing ghat where sleep still clung to the whitewashed temple towers. On cool mornings, steam rose from the water’s surface in delicate curls, carrying the faint perfume of night-flowering jasmine discarded from yesterday’s festival chariot.'
-          },
-          {
-            id: 'b-4',
-            type: 'callout',
-            content: '💡 <strong>River Lore:</strong> In Thanjavur villages, elders say the Kaveri cleanses not just soil, but the anxious thoughts of anyone who sits silently on her bank for twelve minutes.',
-            meta: { calloutType: 'tip' }
-          }
-        ]
+        guidance: 'Introduce young protagonist, the natural environment, and the sensory landscape.'
       },
       {
-        id: uuidv4(),
-        title: 'Chapter 1: The Silver Coracle',
-        content: `<h2>Chapter 1: The Silver Coracle</h2><p>Meenakshi balanced the wicker basket filled with wet clay on her hip. The morning sun was just peeling through the crowns of the palmyra palms, turning the water into molten copper.</p><p>Near the reed bank, something caught the sunlight—not the usual glint of a discarded soda tin or an empty conch, but a circular craft woven of split cane, lined with tarred buffalo hide so smooth it reflected the sky like a cloudy mirror.</p><p>"Thatha!" she called out, forgetting her grandfather’s strict instruction never to raise one’s voice across the holy waters. "The old fisherman’s parisal is adrift again!"</p>`,
+        id: 'children-ch-2',
+        title: 'Chapter 2: The Stork with the Broken Ribbon',
+        content: `<h2>Chapter 2: The Stork with the Broken Ribbon</h2>
+<p>Meenakshi froze. She knew that wild birds were as skittish as dropped mercury. But as the bird stepped forward on long yellow legs, she noticed something trailing from its left claw: a tangle of blue nylon twine, caught with dry water-hyacinth roots.</p>
+<p>"Thatha," she whispered, tugging her grandfather\'s cotton veshti. "Look at his leg. He cannot wade freely."</p>
+<p>Periyavar set down his brass vessel. His weathered face grew solemn. "That is plastic from the pilgrimage ghat three miles upriver. When we treat the river like a refuse ditch, the creatures pay the toll."</p>`,
         isBookmarked: false,
         status: 'final',
-        wordCount: 110,
-        order: 1
+        wordCount: 104,
+        order: 1,
+        guidance: 'Present the inciting ecological dilemma in an age-appropriate narrative style.'
       },
       {
-        id: uuidv4(),
-        title: 'Chapter 2: The Storks Arrive',
-        content: `<h2>Chapter 2: The Storks Arrive</h2><p>They appeared first as a white smudge against the pale blue haze of the eastern horizon—a slow, majestic formation that moved with the precision of dancers on an open stage.</p><p>Subbiah stopped his potter\'s wheel with the palm of his hand, leaving a half-formed water jar spinning quietly on its wooden pivot. "Ah," he said softly, squinting into the morning glare. "The guests from the north have kept their appointment."</p><blockquote>"When the painted storks land on the island tamarinds, winter has entered Tamil soil."</blockquote>`,
-        isBookmarked: true,
-        status: 'final',
-        wordCount: 94,
-        order: 2
-      },
-      {
-        id: uuidv4(),
-        title: 'Chapter 3: The Secret in the Reed Bank',
-        content: `<h2>Chapter 3: The Secret in the Reed Bank</h2><p>Deep inside the thicket of tall elephant grass where only water snakes and marsh harriers usually ventured, Meenakshi noticed a strange ring of stones. They were not ordinary basalt boulders; each stone bore faint carvings of five-petaled lotuses and spiral water wheels.</p><p>As she bent closer, she realised the stones formed an ancient sluice gate—a thousand years old, buried under twenty generations of river silt.</p>`,
+        id: 'children-ch-3',
+        title: 'Chapter 3: The Council Under the Banyan Tree',
+        content: `<h2>Chapter 3: The Council Under the Banyan Tree</h2>
+<p>By noon, seven children had gathered under the sprawling canopy of the great village banyan. Meenakshi had drawn a map in the soft earth using a broken tamarind twig.</p>
+<p>"We cannot catch the bird by force," warned Karthik, who was twelve and claimed to know the flight patterns of every feathered creature in Thanjavur. "A frightened stork can strike with its spear-beak."</p>
+<p>"We do not catch him," Meenakshi replied firmly. "We clean the shallow pool where he feeds at dusk. If we clear the reeds of twine and float small fingerling fish into the clean pond, he will come to our shallows where Thatha can cut the knot with his herbal shears."</p>`,
         isBookmarked: false,
         status: 'in_progress',
-        wordCount: 78,
-        order: 3
-      },
-      {
-        id: uuidv4(),
-        title: 'Chapter 4: The Night of Red Clay',
-        content: `<h2>Chapter 4: The Night of Red Clay</h2><p>The monsoon did not arrive with polite drizzle. It slammed into the delta at midnight, whipping the coconut fronds into furious clatter and turning the village cart tracks into torrents of reddish soup.</p><p>Subbiah and Meenakshi worked by the yellow flicker of a hurricane lantern, carrying their unfired clay vessels into the thatched kiln shed before the dampness could melt them back into formless earth.</p>`,
-        isBookmarked: false,
-        status: 'in_progress',
-        wordCount: 76,
-        order: 4
-      },
-      {
-        id: uuidv4(),
-        title: 'Chapter 5: Songs for the Sea',
-        content: `<h2>Chapter 5: Songs for the Sea</h2><p>By fourth sunrise, the waters had subsided into a wide, peaceful expanse of bronze. The river carried gifts: broken branches from the Kodagu hills, wild bamboo shoots, and fragrant wild lemons.</p><p>Meenakshi knelt by the water’s edge and released a small terracotta boat she had shaped during the storm. Inside sat a single yellow oleander flower. "Carry my greeting to Poompuhar and the wide ocean," she whispered, and watched it dance into the main channel.</p>`,
-        isBookmarked: true,
-        status: 'final',
-        wordCount: 84,
-        order: 5
+        wordCount: 132,
+        order: 2,
+        guidance: 'Children organize collective community action and demonstrate empathy.'
       }
     ],
     assets: []
   },
 
-  // 2. Student Guide to Experiential Learning
+  // 3. STUDENT GUIDE: Student Guide to Experiential Learning
   {
-    id: 'demo-student-guide',
+    id: 'demo-school_guide',
     title: 'Student Guide to Experiential Learning',
-    subtitle: 'From Passive Observation to Grounded Inquiry',
-    description: 'A handbook guiding secondary and undergraduate students to formulate research questions, conduct ethical fieldwork in Indian communities, maintain structured reflection logs, and construct compelling learning portfolios.',
-    type: 'guide',
+    subtitle: 'A Companion for Project-Based Inquiry and Discovery in Secondary Schools',
+    description: 'A comprehensive, practical field guide for school and college learners pursuing active community inquiry, local ecology investigations, and hands-on artifacts.',
+    type: 'school_guide',
     blueprintId: 'school_guide',
-    tags: ['Student Handbook', 'Experiential Learning', 'Shaastra Framework', 'Inquiry'],
+    tags: ['Experiential Learning', 'Student Guide', 'Inquiry', 'Pedagogy'],
     isFavorite: true,
-    status: 'final',
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 21,
-    updatedAt: Date.now() - 1000 * 60 * 60 * 6,
-    authorName: 'Shaastra Curriculum Group',
-    publisher: 'Shaastra Educational Press',
+    status: 'in_progress',
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 20,
+    updatedAt: Date.now() - 1000 * 60 * 60 * 4,
+    authorName: 'Dr. Radhakrishnan Memorial Pedagogy Cell',
+    publisher: 'Shaastra Vidya Kendra Publications',
     language: 'English',
-    genre: 'Instructional & Academic Guide',
-    targetAudience: 'Secondary, Higher Secondary & College Students',
+    genre: 'Educational Companion & Field Manual',
+    targetAudience: 'Secondary & Senior Secondary Learners (Grades 8–12)',
     copyrightYear: 2026,
     isbn: '978-81-945621-1-1',
     cover: {
       title: 'Student Guide to Experiential Learning',
-      subtitle: 'From Passive Observation to Grounded Inquiry',
-      author: 'Shaastra Curriculum Group',
-      bgColor: '#1E3A8A',
-      textColor: '#FFFFFF',
-      accentColor: '#F59E0B',
+      subtitle: 'A Companion for Active Inquiry',
+      author: 'Shaastra Vidya Kendra',
+      bgColor: '#1D3557',
+      textColor: '#F1FAEE',
+      accentColor: '#E63946',
       styleTemplate: 'academic',
-      alignment: 'left',
-      borderStyle: 'modern'
+      alignment: 'center',
+      borderStyle: 'double'
     },
     frontMatter: {
       titlePage: {
         enabled: true,
         title: 'Student Guide to Experiential Learning',
-        subtitle: 'From Passive Observation to Grounded Inquiry',
-        author: 'Shaastra Curriculum Group',
-        publisher: 'Shaastra Educational Press, Bengaluru',
+        subtitle: 'A Companion for Project-Based Inquiry and Discovery',
+        author: 'Shaastra Vidya Kendra Pedagogy Cell',
+        publisher: 'Shaastra Vidya Kendra Publications, New Delhi',
         year: 2026
+      },
+      dedication: {
+        enabled: true,
+        text: 'Dedicated to young minds who dare to step out of textbooks and treat their neighborhood as a living laboratory.'
       },
       preface: {
         enabled: true,
-        title: 'Why Experiential Learning Matters Today',
-        content: 'In an era where textbooks can be digitised and information recalled at the tap of a button, real education lies in direct sensory contact with human reality. Experiential learning invites you to step out of the lecture hall and look at your community through the dual lenses of scientific rigor and empathy.'
+        title: 'How to Use This Handbook',
+        content: 'This volume is not designed to be memorized for examinations. It is a workbook for your hands, your eyes, and your boots. Carry it on field surveys, keep it beside your workbench, and annotate its margins generously.'
+      },
+      aboutAuthor: {
+        enabled: true,
+        bio: 'The Shaastra Vidya Kendra is an interdisciplinary alliance of teachers, field scientists, and curriculum designers dedicated to constructivist learning.'
       }
     },
     chapters: [
       {
-        id: uuidv4(),
+        id: 'guide-ch-1',
         title: 'Orientation & Learning Charter',
-        content: `<h1>Orientation & Learning Charter</h1><p class="lead">Experiential learning is not an extracurricular diversion; it is the cornerstone of true intellectual competence.</p><p>As a student undertaking a Shaastra inquiry project, you commit to five non-negotiable principles:</p><ul><li><strong>Active Observation:</strong> Noticing what others dismiss as ordinary background noise.</li><li><strong>Ethical Respect:</strong> Never treating community members as passive subjects of an experiment.</li><li><strong>Evidence Integrity:</strong> Recording observations exactly as they occur, without fudging data to match expectations.</li><li><strong>Critical Reflection:</strong> Connecting field notes to fundamental economic, ecological, or physical laws.</li><li><strong>Artifact Creation:</strong> Synthesising your findings into a durable book or document.</li></ul>`,
+        content: `<h1>Orientation & Learning Charter</h1>
+<p class="lead">Welcome to experiential learning. In this pathway, you are no longer a passive spectator receiving pre-digested answers; you are an active investigator asking original questions.</p>
+<div style="background-color: #f1f5f9; padding: 1rem; border-left: 4px solid #1D3557; margin: 1.5rem 0;">
+  <strong>The Three Pillars of Active Inquiry:</strong>
+  <ol>
+    <li><strong>Direct Observation:</strong> Document what actually exists, not what the brochure says should exist.</li>
+    <li><strong>Systemic Questioning:</strong> Ask "Why does this happen here?" and "Who benefits or suffers from this pattern?"</li>
+    <li><strong>Artifact Creation:</strong> Conclude every inquiry by building something tangible: a map, a water filter model, or an oral history archive.</li>
+  </ol>
+</div>`,
         isBookmarked: true,
         status: 'final',
-        wordCount: 112,
-        order: 0
+        wordCount: 115,
+        order: 0,
+        guidance: 'Grounding learners in autonomy, curiosity, and ethical observation.'
       },
       {
-        id: uuidv4(),
+        id: 'guide-ch-2',
         title: 'Module 1: The Spirit of Active Inquiry',
-        content: `<h2>Module 1: The Spirit of Active Inquiry</h2><p>Most research begins with a bad question. A question like <em>"Why are village roads poor?"</em> leads only to complaints. But an inquiry formulated as: <em>"How do monsoon drainage patterns on the southern slope of Ward 4 affect vegetable cart transit times to the weekly mandi?"</em> provides a concrete, measurable roadmap.</p><p>In this module, you will practice transforming broad societal anxieties into testable field hypotheses.</p>`,
+        content: `<h2>Module 1: The Spirit of Active Inquiry</h2>
+<p>How does a student transform from a textbook memorizer into an authentic researcher? It begins by unlearning the urge to ask for the "right answer" on page 42.</p>
+<p>When you conduct field inquiry, reality is messy. Variables are interconnected. When you measure the temperature of the school courtyard, shade, asphalt, wind currents, and tree canopy all interact simultaneously.</p>`,
         isBookmarked: false,
         status: 'final',
-        wordCount: 82,
-        order: 1
+        wordCount: 75,
+        order: 1,
+        guidance: 'Moving beyond rote memorisation into keen observation.'
       },
       {
-        id: uuidv4(),
+        id: 'guide-ch-3',
         title: 'Module 2: Field Activity Frameworks',
-        content: `<h2>Module 2: Field Activity Frameworks</h2><p>Preparation is the difference between an enlightening field visit and an aimless walk. Before departing your campus:</p><ol><li>Verify that your observation logbook has waterproof protective wrapping.</li><li>Agree with your team on standardized recording metrics (e.g. measuring queue times in minutes rather than descriptors like 'long' or 'short').</li><li>Seek explicit verbal or written consent before taking photographs of workspaces or artisanal processes.</li></ol>`,
+        content: `<h2>Module 2: Field Activity Frameworks</h2>
+<p>Before you step out of the school gates, formulate a Field Hypothesis Card. Every investigator must have three essentials:</p>
+<ul>
+  <li>A clear spatial perimeter (e.g., 200 meters around the village pond).</li>
+  <li>A standardized data recording grid (date, time, ambient humidity, observer signature).</li>
+  <li>An ethical permission protocol for speaking with residents or vendors.</li>
+</ul>`,
         isBookmarked: false,
-        status: 'final',
-        wordCount: 78,
-        order: 2
-      },
-      {
-        id: uuidv4(),
-        title: 'Module 3: Structured Reflection Logs',
-        content: `<h2>Module 3: Structured Reflection Logs</h2><p>Experience without reflection is merely physical fatigue. At the close of every field day, reserve sixty uninterrupted minutes for your structured logbook. Ask yourself:</p><blockquote>"What surprised me today? What contradicted my initial assumption? What mathematical or social pattern explains this divergence?"</blockquote>`,
-        isBookmarked: true,
-        status: 'final',
-        wordCount: 56,
-        order: 3
-      },
-      {
-        id: uuidv4(),
-        title: 'Module 4: Building the Portfolio Artifact',
-        content: `<h2>Module 4: Building the Portfolio Artifact</h2><p>Your final submission must not be a stapled sheaf of photocopies. Using Book Builder Shaastra, you will compile an archival publication complete with table of contents, high-resolution diagrams, interview transcripts, and policy proposals that can be gifted back to the local panchayat or library.</p>`,
-        isBookmarked: false,
-        status: 'draft',
-        wordCount: 60,
-        order: 4
+        status: 'in_progress',
+        wordCount: 65,
+        order: 2,
+        guidance: 'Step-by-step methodologies for local community research.'
       }
     ],
     assets: []
   },
 
-  // 3. Teacher Guide to Shaastra Edusystem
+  // 4. TEACHER HANDBOOK: Teacher Guide to Shaastra Edusystem
   {
-    id: 'demo-teacher-guide',
+    id: 'demo-teacher_handbook',
     title: 'Teacher Guide to Shaastra Edusystem',
-    subtitle: 'Pedagogy of Curiosity, Dignity, and Evidence',
-    description: 'A comprehensive handbook for teachers and school administrators implementing experiential curricula, continuous formative diagnosis, peer mentoring circles, and non-punitive evaluation environments.',
-    type: 'handbook',
+    subtitle: 'Pedagogical Frameworks for Experiential, Constructivist & Student-Centered Classrooms',
+    description: 'Instructional handbook for educators adopting constructive, experiential, and inquiry-led methods across multi-grade and multi-disciplinary settings.',
+    type: 'teacher_handbook',
     blueprintId: 'teacher_handbook',
-    tags: ['Pedagogy', 'Teacher Training', 'Curriculum Design', 'NEP Aligned'],
+    tags: ['Teacher Handbook', 'Edusystem', 'Classroom Dynamics', 'Pedagogy'],
     isFavorite: false,
     status: 'in_progress',
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 35,
-    updatedAt: Date.now() - 1000 * 60 * 60 * 12,
-    authorName: 'Prof. K. Venkateswaran',
-    publisher: 'Shaastra Institute of Educational Research',
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 22,
+    updatedAt: Date.now() - 1000 * 60 * 60 * 6,
+    authorName: 'Prof. K. S. Sundaram & Council of Master Mentors',
+    publisher: 'Shaastra Educational Foundation Press',
     language: 'English',
-    genre: 'Professional Educator Handbook',
+    genre: 'Teacher Training & Curriculum Guide',
+    targetAudience: 'Headmasters, Lead Educators, Teacher Trainees',
     copyrightYear: 2026,
+    isbn: '978-81-945621-2-8',
+    cover: {
+      title: 'Teacher Guide to Shaastra Edusystem',
+      subtitle: 'Constructivist Pedagogical Frameworks',
+      author: 'Prof. K. S. Sundaram',
+      bgColor: '#4A0E4E',
+      textColor: '#FAF0CA',
+      accentColor: '#F4D35E',
+      styleTemplate: 'academic',
+      alignment: 'center',
+      borderStyle: 'ornate'
+    },
+    frontMatter: {
+      titlePage: {
+        enabled: true,
+        title: 'Teacher Guide to Shaastra Edusystem',
+        subtitle: 'Pedagogical Frameworks for Experiential & Student-Centered Classrooms',
+        author: 'Prof. K. S. Sundaram & Council of Master Mentors',
+        publisher: 'Shaastra Educational Foundation Press, Bengaluru',
+        year: 2026
+      },
+      dedication: {
+        enabled: true,
+        text: 'To teachers who build spaces where no child is afraid of making a mistake.'
+      },
+      preface: {
+        enabled: true,
+        title: 'The Shift in Teacher Identity',
+        content: 'In the traditional classroom, the teacher stood upon an elevated dais, the sole conduit of sanctioned facts. In the Shaastra Edusystem, the teacher is a chief facilitator, architect of learning environments, and co-investigator.'
+      },
+      aboutAuthor: {
+        enabled: true,
+        bio: 'Prof. K. S. Sundaram has mentored over 4,000 rural and urban educators across India in learner-centered pedagogy.'
+      }
+    },
     chapters: [
       {
-        id: uuidv4(),
+        id: 'teacher-ch-1',
         title: 'Philosophical Grounding',
-        content: `<h1>Philosophical Grounding</h1><p>The traditional Indian classroom has for too long suffered under the shadow of the one-way lecture—an architectural and pedagogical arrangement where the teacher speaks and fifty pupils transcribe silently.</p><p>The Shaastra approach asserts that <strong>understanding is constructed through dialogue and craftsmanship</strong>. The educator does not arrive as an omniscient authority, but as a master builder who sets up safe scaffolds within which learners confront genuine questions.</p>`,
+        content: `<h1>Philosophical Grounding</h1>
+<p class="lead">The Shaastra vision is rooted in ancient Indian epistemological inquiry (<em>Pramāna</em>), harmonized with modern constructivist principles formulated by Dewey, Vygotsky, and Freire.</p>
+<p>Knowledge is not poured into empty vessels. It is actively constructed by learners as they interact with materials, deliberate with peers, and reflect upon surprises.</p>
+<div style="background-color: #fdf2f8; padding: 1rem; border-left: 4px solid #db2777; margin: 1.5rem 0;">
+  <strong>Core Tenet:</strong> If a concept can be touched, built, or surveyed in the local neighborhood, it should never be introduced solely as an abstract definition on a blackboard.
+</div>`,
         isBookmarked: true,
         status: 'final',
-        wordCount: 84,
-        order: 0
+        wordCount: 105,
+        order: 0,
+        guidance: 'The Shaastra vision: cultivating holistic curiosity and ethical intellect.'
       },
       {
-        id: uuidv4(),
+        id: 'teacher-ch-2',
         title: 'Classroom Architecture & Dynamics',
-        content: `<h2>Classroom Architecture & Dynamics</h2><p>Desks arranged in rigid rows train children for factory assembly lines. To foster collaborative research, transform your physical room into dynamic inquiry clusters:</p><ul><li><strong>The Laboratory Hearth:</strong> A central bench for shared apparatus and demonstration.</li><li><strong>The Scribe Table:</strong> Equipped with reference encyclopedias, dictionaries, and draft registers.</li><li><strong>The Agora:</strong> A circular seating rug where seminar debates and project defenses occur weekly.</li></ul>`,
+        content: `<h2>Classroom Architecture & Dynamics</h2>
+<p>Break the straight rows. Monolithic desks facing forward silently reinforce obedience over collaboration. Arrange pods of 4 to 5 desks with central material trays containing graph paper, measuring tapes, and magnifiers.</p>`,
         isBookmarked: false,
         status: 'final',
-        wordCount: 75,
-        order: 1
+        wordCount: 42,
+        order: 1,
+        guidance: 'Arranging collaborative spaces and fostering dialogue.'
       },
       {
-        id: uuidv4(),
+        id: 'teacher-ch-3',
         title: 'Designing Experiential Units',
-        content: `<h2>Designing Experiential Units</h2><p>Every four-week unit must culminate in a public artifact. Rather than asking students to memorise the periodic table for a twenty-mark test, challenge them to research the chemical stability of local building materials and publish an informational guide for village masons.</p>`,
+        content: `<h2>Designing Experiential Units</h2>
+<p>A successful experiential unit follows the 4-phase arc: <strong>Spark & Wonder</strong> (catalytic phenomenon), <strong>Investigation & Field Gathering</strong> (collecting empirical traces), <strong>Synthesis & Dialogue</strong> (peer deliberation), and <strong>Public Exposition</strong> (sharing artifacts with community members).</p>`,
         isBookmarked: false,
         status: 'in_progress',
         wordCount: 48,
-        order: 2
+        order: 2,
+        guidance: 'Template and workflow for creating multi-disciplinary learning arcs.'
       }
     ],
     assets: []
   },
 
-  // 4. Parent Guide: Nurturing Inquisitive Minds
+  // 5. PARENT GUIDE: Parent Guide: Nurturing Inquisitive Minds
   {
-    id: 'demo-parent-guide',
+    id: 'demo-parent_guide',
     title: 'Parent Guide: Nurturing Inquisitive Minds',
-    subtitle: 'Daily Rhythms for Fostering Wonder at Home',
-    description: 'An empathetic, grounded manual offering Indian parents practical alternatives to excessive screen-time, competitive coaching pressure, and passive entertainment by reviving reading rituals and dinner-table dialogues.',
-    type: 'guide',
+    subtitle: 'A Gentle Companion for Supporting Curiosity, Emotional Resilience, and Deep Learning at Home',
+    description: 'Warm, actionable companion for parents supporting their child’s natural curiosity at home, balancing digital screens, and building collaborative partnerships with teachers.',
+    type: 'parent_guide',
     blueprintId: 'parent_guide',
-    tags: ['Parenting', 'Home Learning', 'Child Development', 'Mental Wellness'],
+    tags: ['Parenting', 'Guide', 'Home Learning', 'Child Development'],
     isFavorite: false,
-    status: 'final',
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 18,
-    updatedAt: Date.now() - 1000 * 60 * 60 * 24,
-    authorName: 'Dr. Radhika Krishnakumar',
-    publisher: 'Shaastra Family Press',
+    status: 'draft',
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 16,
+    updatedAt: Date.now() - 1000 * 60 * 60 * 5,
+    authorName: 'Dr. Meera Nambiar',
+    publisher: 'Shaastra Kutumbha Press',
     language: 'English',
-    genre: 'Parenting & Family Education',
+    genre: 'Parenting & Educational Psychology',
+    targetAudience: 'Parents of School-Age Children (Ages 5–16)',
     copyrightYear: 2026,
+    isbn: '978-81-945621-3-5',
+    cover: {
+      title: 'Parent Guide: Nurturing Inquisitive Minds',
+      subtitle: 'Supporting Deep Curiosity at Home',
+      author: 'Dr. Meera Nambiar',
+      bgColor: '#264653',
+      textColor: '#FAF9F6',
+      accentColor: '#2A9D8F',
+      styleTemplate: 'modern',
+      alignment: 'center',
+      borderStyle: 'single'
+    },
+    frontMatter: {
+      titlePage: {
+        enabled: true,
+        title: 'Parent Guide: Nurturing Inquisitive Minds',
+        subtitle: 'Supporting Curiosity, Emotional Resilience, and Deep Learning at Home',
+        author: 'Dr. Meera Nambiar',
+        publisher: 'Shaastra Kutumbha Press, Kochi',
+        year: 2026
+      },
+      dedication: {
+        enabled: true,
+        text: 'For parents who stay patient through the fourteenth "Why?" of the morning.'
+      },
+      preface: {
+        enabled: true,
+        title: 'A Letter to Parents',
+        content: 'You do not need a degree in nuclear physics or classical literature to cultivate an inquisitive home. The most potent tool in your parenting kit is not an expensive coaching class—it is your willingness to wonder aloud alongside your child.'
+      },
+      aboutAuthor: {
+        enabled: true,
+        bio: 'Dr. Meera Nambiar is a child clinical psychologist and mother of two based in Kerala.'
+      }
+    },
     chapters: [
       {
-        id: uuidv4(),
+        id: 'parent-ch-1',
         title: 'Introduction: The Home as a Laboratory',
-        content: `<h1>Introduction: The Home as a Laboratory</h1><p>We often assume that learning happens only inside institutions with chalkboards and bells. Yet the most profound mathematical lessons happen when measuring lentils for dinner, and the most durable biological curiosity is sparked by watching ants navigate the kitchen window sill.</p><p>When parents shift from interrogation (<em>"What marks did you score today?"</em>) to co-investigation (<em>"What was the most surprising thing you noticed today?"</em>), a child\'s fear of failure vanishes.</p>`,
+        content: `<h1>Introduction: The Home as a Laboratory</h1>
+<p class="lead">A kitchen is not merely a place where dinner is cooked; it is a laboratory of thermal expansion, enzymatic browning, phase changes, and ratio calculations.</p>
+<p>When you boil milk, watch dough rise with yeast, or examine why salt dissolves in warm water faster than cold water, science ceases to be an alien chapter in a textbook. It becomes sensory reality.</p>
+<p>Never dismiss a domestic curiosity with "You will learn that in eighth grade." Respond instead: "Let us test it right here with two cups and a spoon."</p>`,
+        isBookmarked: true,
+        status: 'final',
+        wordCount: 95,
+        order: 0,
+        guidance: 'Reimagining everyday domestic routines as creative sparks.'
+      },
+      {
+        id: 'parent-ch-2',
+        title: 'Cultivating Reading Rituals',
+        content: `<h2>Cultivating Reading Rituals</h2>
+<p>Children do not learn to love reading because they are commanded to read for thirty minutes before bedtime. They love reading when they see adults in the house absorbed in books with tea in hand.</p>
+<p>Establish a <em>Family Reading Hour</em> where phones are docked in a wicker basket in the hallway, and everyone—parents, grandparents, children—curls up with a book of their choice in companionable silence.</p>`,
+        isBookmarked: false,
+        status: 'draft',
+        wordCount: 78,
+        order: 1,
+        guidance: 'How to build family reading habits without coercion or tests.'
+      }
+    ],
+    assets: []
+  },
+
+  // 6. FICTION NOVEL: The Mist Over Kodaikanal
+  {
+    id: 'demo-fiction_novel',
+    title: 'The Mist Over Kodaikanal',
+    subtitle: 'A Hill Station Chronicle in Nine Movements',
+    description: 'A multi-chapter literary suspense novel set amidst the eucalyptus groves, shola forests, and colonial archives of an isolated hill station during the late autumn rains.',
+    type: 'fiction_novel',
+    blueprintId: 'fiction_novel',
+    tags: ['Fiction', 'Literary Mystery', 'Hill Station', 'Multi-Chapter'],
+    isFavorite: true,
+    status: 'in_progress',
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 35,
+    updatedAt: Date.now() - 1000 * 60 * 60 * 2,
+    authorName: 'Vikramaditya Varma',
+    publisher: 'Shaastra Literary Imprint',
+    language: 'English',
+    genre: 'Literary Mystery & Atmospheric Fiction',
+    targetAudience: 'Lovers of Literary Mystery & Historical Atmosphere',
+    copyrightYear: 2026,
+    isbn: '978-81-945621-4-2',
+    cover: {
+      title: 'The Mist Over Kodaikanal',
+      subtitle: 'A Hill Station Chronicle',
+      author: 'Vikramaditya Varma',
+      bgColor: '#1A2A3A',
+      textColor: '#ECEFF1',
+      accentColor: '#80CBC4',
+      styleTemplate: 'fiction',
+      alignment: 'center',
+      borderStyle: 'single'
+    },
+    frontMatter: {
+      titlePage: {
+        enabled: true,
+        title: 'The Mist Over Kodaikanal',
+        subtitle: 'A Hill Station Chronicle in Nine Movements',
+        author: 'Vikramaditya Varma',
+        publisher: 'Shaastra Literary Imprint, Chennai',
+        year: 2026
+      },
+      dedication: {
+        enabled: true,
+        text: 'For the shola trees that cling to the ridge, and for those who walk through the mist without fearing what lies behind it.'
+      },
+      preface: {
+        enabled: true,
+        title: 'Epigraph',
+        content: '"The mountain does not conceal the truth; it merely waits for the clouds to part before those who have earned the view."'
+      },
+      aboutAuthor: {
+        enabled: true,
+        bio: 'Vikramaditya Varma was raised in the Palani Hills and spent a decade documenting colonial cadastral maps.'
+      }
+    },
+    chapters: [
+      {
+        id: 'fiction-ch-0',
+        title: 'Prologue: The Shadow Cast',
+        content: `<h1>Prologue: The Shadow Cast</h1>
+<p class="lead">In Kodaikanal, the fog does not arrive; it materializes out of the floorboards like an old memory that refused to drown.</p>
+<p>By four in the afternoon on the third of November, the lake had already swallowed the wooden rowboats moored along the club pier. From the stone verandah of the Observatory bungalow, Dr. Nathan could hear nothing save the slow drip of condensing moisture dropping from pine needles onto the rusted corrugated roof.</p>
+<p>He held the copper surveying cylinder in his hand. Its seal had been broken seventy years ago, yet the beeswax inside still smelled of dried clove and forgotten ink.</p>`,
+        isBookmarked: true,
+        status: 'final',
+        wordCount: 112,
+        order: 0,
+        guidance: 'An evocative glimpse into the catalytic mystery or historical seed.'
+      },
+      {
+        id: 'fiction-ch-1',
+        title: 'Chapter 1: The Quiet Hill Town',
+        content: `<h2>Chapter 1: The Quiet Hill Town</h2>
+<p>The postmaster at Seven Roads junction had known three generations of Nathan’s family. He handed over the registered packet with the peculiar deference hill people reserve for those who live alone above the tree line.</p>
+<p>"It arrived by the afternoon bus from Batlagundu, Doctor-ayya," Murugan said, wiping his steel-rimmed spectacles on his woollen muffler. "The driver said an advocate from Madurai paid him double fare to deliver it before the post office shutters closed."</p>`,
+        isBookmarked: false,
+        status: 'final',
+        wordCount: 84,
+        order: 1,
+        guidance: 'Establish normal world, protagonist desires, and ominous signs.'
+      },
+      {
+        id: 'fiction-ch-2',
+        title: 'Chapter 2: The Unwelcome Discovery',
+        content: `<h2>Chapter 2: The Unwelcome Discovery</h2>
+<p>Under the yellow glow of the brass hurricane lantern, the parchment unfolded with a brittle sigh. It was a deed of transfer dated September 1912, signed by the forest conservator and an unnamed trustee of the Palani Devasthanam.</p>
+<p>Across the center of the deed, someone had drawn a red wax cross over the surveyor’s elevation benchmark for Pillar Rocks.</p>`,
+        isBookmarked: false,
+        status: 'in_progress',
+        wordCount: 68,
+        order: 2,
+        guidance: 'The inciting incident that disrupts normal routines.'
+      }
+    ],
+    assets: []
+  },
+
+  // 7. ACADEMIC RESEARCH: Economics of Grassroots Enterprise
+  {
+    id: 'demo-academic_research',
+    title: 'Economics of Grassroots Enterprise in Rural Tamil Nadu',
+    subtitle: 'An Empirical Field Investigation into Self-Help Credit Unions, Artisan Collectives, and Sustainable Livelihoods',
+    description: 'Rigorous empirical paper structure featuring literature review, field sampling methodology, statistical data tables, and actionable policy interventions.',
+    type: 'academic_research',
+    blueprintId: 'academic_research',
+    tags: ['Economics', 'Policy Research', 'Grassroots', 'Empirical Study'],
+    isFavorite: false,
+    status: 'final',
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 40,
+    updatedAt: Date.now() - 1000 * 60 * 60 * 8,
+    authorName: 'Dr. S. Kalyanasundaram & P. Revathi',
+    publisher: 'Shaastra Institute of Development Studies Press',
+    language: 'English',
+    genre: 'Development Economics & Empirical Policy',
+    targetAudience: 'Policy Makers, Economists, Rural Development Officers',
+    copyrightYear: 2026,
+    isbn: '978-81-945621-5-9',
+    cover: {
+      title: 'Economics of Grassroots Enterprise',
+      subtitle: 'An Empirical Field Investigation',
+      author: 'Dr. S. Kalyanasundaram',
+      bgColor: '#0F172A',
+      textColor: '#F8FAFC',
+      accentColor: '#38BDF8',
+      styleTemplate: 'academic',
+      alignment: 'left',
+      borderStyle: 'single'
+    },
+    frontMatter: {
+      titlePage: {
+        enabled: true,
+        title: 'Economics of Grassroots Enterprise in Rural Tamil Nadu',
+        subtitle: 'An Empirical Field Investigation into Self-Help Credit Unions & Artisan Collectives',
+        author: 'Dr. S. Kalyanasundaram & P. Revathi',
+        publisher: 'Shaastra Institute of Development Studies Press, Chennai',
+        year: 2026
+      },
+      dedication: {
+        enabled: true,
+        text: 'Dedicated to the women leaders of Tamil Nadu self-help federations whose financial discipline sustains the rural economy.'
+      },
+      preface: {
+        enabled: true,
+        title: 'Research Scope & Grants',
+        content: 'This research monograph synthesizes 36 months of longitudinal field surveys across 42 villages in Thanjavur, Pudukkottai, and Dindigul districts, funded in part by the Rural Livelihoods Mission.'
+      },
+      aboutAuthor: {
+        enabled: true,
+        bio: 'Dr. S. Kalyanasundaram is Professor of Development Economics; P. Revathi is Senior Research Fellow at SIDS.'
+      }
+    },
+    chapters: [
+      {
+        id: 'academic-ch-1',
+        title: 'Abstract & Executive Summary',
+        content: `<h1>Abstract & Executive Summary</h1>
+<p class="lead">Microfinance mechanisms often fail when disconnected from local artisan supply chains. This investigation examines 1,240 rural households across 42 revenue villages in central Tamil Nadu.</p>
+<p>Our quantitative findings demonstrate that when self-help groups (SHGs) transition from consumption microcredit to collective backward-linkage purchasing (raw brass, organic cotton, terracotta clay), default rates fall from <strong>4.8%</strong> to <strong>0.3%</strong>, while household net real income expands by an average of <strong>34.2%</strong> over a 24-month horizon.</p>`,
         isBookmarked: true,
         status: 'final',
         wordCount: 88,
-        order: 0
+        order: 0,
+        guidance: 'Core research question, methodology sample, key findings, policy impact.'
       },
       {
-        id: uuidv4(),
-        title: 'Cultivating Reading Rituals',
-        content: `<h2>Cultivating Reading Rituals</h2><p>Children do not imitate our advice; they imitate our habits. If an entire household spends the hours between 7 PM and 9 PM glued to smartphone notification reels, no amount of scolding will turn a child into an avid reader.</p><p>Establish a daily thirty-minute <strong>"Silent Reading Hearth"</strong> where all devices are placed in a decorative wicker box and everyone—adults included—opens a printed book.</p>`,
-        isBookmarked: false,
-        status: 'final',
-        wordCount: 78,
-        order: 1
-      },
-      {
-        id: uuidv4(),
-        title: 'Balancing Digital Engagement & Nature',
-        content: `<h2>Balancing Digital Engagement & Nature</h2><p>Digital tools are instruments of creation, not pacifiers for restless toddlers. Encourage children to use Book Builder Shaastra to document their own weekend plant experiments, bird counts, or family recipes rather than passively consuming short-form video loops.</p>`,
-        isBookmarked: false,
-        status: 'final',
-        wordCount: 50,
-        order: 2
-      }
-    ],
-    assets: []
-  },
-
-  // 5. Economics of Grassroots Enterprise in Rural Tamil Nadu (Academic Research)
-  {
-    id: 'demo-economics-research',
-    title: 'Economics of Grassroots Enterprise in Rural Tamil Nadu',
-    subtitle: 'An Empirical Field Study across 42 Micro-Enterprises in Thanjavur District',
-    description: 'A formal socio-economic research report examining credit access, working capital velocity, artisanal supply chains, and technological adoption among handloom weavers, bronze casters, and terracotta cooperatives.',
-    type: 'research',
-    blueprintId: 'academic_research',
-    tags: ['Economics', 'Rural Enterprise', 'Field Research', 'Policy Paper'],
-    isFavorite: true,
-    status: 'review',
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 40,
-    updatedAt: Date.now() - 1000 * 60 * 60 * 4,
-    authorName: 'Dr. S. Rangarajan & M. Deepa',
-    publisher: 'Centre for Rural Development & Shaastra Policy Forum',
-    language: 'English',
-    genre: 'Economic Monograph & Research',
-    copyrightYear: 2026,
-    isbn: '978-81-945621-4-2',
-    references: [
-      {
-        id: 'ref-econ-1',
-        type: 'journal',
-        author: 'Banerjee, A., & Duflo, E.',
-        title: 'The Miracle of Microfinance? Evidence from a Randomized Evaluation',
-        publisher: 'American Economic Journal: Applied Economics',
-        year: '2015',
-        notes: 'Comparison of interest rates vs informal money lenders.'
-      },
-      {
-        id: 'ref-econ-2',
-        type: 'report',
-        author: 'NABARD',
-        title: 'Status of Microfinance in India 2024-25',
-        publisher: 'National Bank for Agriculture and Rural Development',
-        year: '2025',
-        notes: 'Official state-wise credit deployment data.'
-      }
-    ],
-    chapters: [
-      {
-        id: uuidv4(),
-        title: 'Abstract & Executive Summary',
-        content: `<h1>Abstract & Executive Summary</h1><p class="lead">Micro and small informal enterprises constitute over 84% of non-farm rural livelihoods in Thanjavur district, yet their capacity for sustained capital accumulation remains severely curtailed by informal debt structures.</p><p>This study draws on rigorous field interviews, balance-sheet reconstructions, and seasonal cash-flow audits across 42 grassroots enterprises in five taluks. Our data reveals that while headline access to formal banking has risen under digital KYC initiatives, effective credit delivery remains bottlenecked by collateral demands that artisanal units cannot satisfy.</p>`,
-        isBookmarked: true,
-        status: 'final',
-        wordCount: 96,
-        order: 0
-      },
-      {
-        id: uuidv4(),
-        title: 'Introduction & Regional Context',
-        content: `<h2>Introduction & Regional Context</h2><p>The delta region of the Kaveri has historically functioned as both an agricultural granary and a center of high-value artistic crafts—most notably Swamimalai bronze casting, Thirubuvanam silk weaving, and Nachiarkoil brass lamp making.</p><p>However, the transition from generational patron-client relationships to open commodity markets has exposed rural producers to brutal price volatility in raw copper, tin, and mulberry silk.</p>`,
-        isBookmarked: false,
-        status: 'final',
-        wordCount: 75,
-        order: 1
-      },
-      {
-        id: uuidv4(),
-        title: 'Methodology & Field Sampling',
-        content: `<h2>Methodology & Field Sampling</h2><p>Data was gathered over a nine-month period between January and September 2025. Sampling was stratified across three distinct enterprise archetypes:</p><ul><li>Family-owned hereditary workshops (&lt; 3 workers)</li><li>Informal worker collectives (4–12 workers)</li><li>Registered cooperative federations (&gt; 15 workers)</li></ul>`,
-        isBookmarked: false,
-        status: 'final',
-        wordCount: 52,
-        order: 2
-      },
-      {
-        id: uuidv4(),
+        id: 'academic-ch-2',
         title: 'Empirical Findings & Data Tables',
-        content: `<h2>Empirical Findings & Data Tables</h2><p>Average daily wages in informal bronze casting fluctuated between ₹450 and ₹850, directly correlated with seasonal temple festival orders. Working capital cycles averaged 48 days, forcing 68% of proprietors to borrow short-term cash from local intermediaries at effective annual APRs exceeding 36%.</p>`,
-        isBookmarked: true,
-        status: 'review',
-        wordCount: 58,
-        order: 3
+        content: `<h2>Empirical Findings & Data Tables</h2>
+<p>The surveyed sample was disaggregated across three clusters: weaving (Pudukkottai), bronze casting (Swamimalai), and organic paddy farming (Thanjavur).</p>
+<table style="width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.85rem;">
+  <thead>
+    <tr style="background-color: #f1f5f9; border-bottom: 2px solid #cbd5e1; text-align: left;">
+      <th style="padding: 8px 12px;">Sector</th>
+      <th style="padding: 8px 12px;">Sample (n)</th>
+      <th style="padding: 8px 12px;">Avg Loan (₹)</th>
+      <th style="padding: 8px 12px;">Repayment Rate</th>
+      <th style="padding: 8px 12px;">Income Lift (%)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="border-bottom: 1px solid #e2e8f0;">
+      <td style="padding: 8px 12px;">Bronze Casting</td>
+      <td style="padding: 8px 12px;">380</td>
+      <td style="padding: 8px 12px;">₹85,000</td>
+      <td style="padding: 8px 12px;">99.4%</td>
+      <td style="padding: 8px 12px;">+38.6%</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #e2e8f0;">
+      <td style="padding: 8px 12px;">Organic Paddy</td>
+      <td style="padding: 8px 12px;">490</td>
+      <td style="padding: 8px 12px;">₹45,000</td>
+      <td style="padding: 8px 12px;">98.8%</td>
+      <td style="padding: 8px 12px;">+29.1%</td>
+    </tr>
+    <tr>
+      <td style="padding: 8px 12px;">Handloom Weaving</td>
+      <td style="padding: 8px 12px;">370</td>
+      <td style="padding: 8px 12px;">₹60,000</td>
+      <td style="padding: 8px 12px;">99.1%</td>
+      <td style="padding: 8px 12px;">+35.0%</td>
+    </tr>
+  </tbody>
+</table>`,
+        isBookmarked: false,
+        status: 'final',
+        wordCount: 112,
+        order: 1,
+        guidance: 'Granular presentation of surveyed outcomes and correlation analyses.'
       }
     ],
     assets: []
   },
 
-  // 6. The Mist Over Kodaikanal (Fiction Novel)
+  // 8. STUDENT WORKBOOK: Student Science & Inquiry Workbook
   {
-    id: 'demo-fiction-kodaikanal',
-    title: 'The Mist Over Kodaikanal',
-    subtitle: 'A Hill Station Mystery in Nine Chapters',
-    description: 'When an eccentric botanist disappears from his greenhouse above Pillar Rocks, an archivist from the Madras Literary Society is drawn into a labyrinth of colonial botanical secrets, forgotten land grants, and mountain mist.',
-    type: 'novel',
-    blueprintId: 'fiction_novel',
-    tags: ['Fiction', 'Literary Mystery', 'Nilgiri Setting', 'Novel'],
-    isFavorite: true,
+    id: 'demo-student_workbook',
+    title: 'Shaastra Student Science & Inquiry Workbook',
+    subtitle: 'Hands-on Field Protocols, Hypotheses Logs, and Experimental Data Sheets',
+    description: 'An interactive scientific workbook containing real investigations: Flora Diversity Quadrat sampling, Turbidity & Water Quality, Simple Machines in Crafts, and Solar Thermal prototypes.',
+    type: 'student_workbook',
+    blueprintId: 'student_workbook',
+    tags: ['Science Workbook', 'Field Experiments', 'Inquiry Worksheets', 'STEM'],
+    isFavorite: false,
     status: 'draft',
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 15,
-    updatedAt: Date.now() - 1000 * 60 * 60 * 1,
-    authorName: 'Vikramaditya Iyer',
-    publisher: 'Shaastra Fiction Workshop',
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 18,
+    updatedAt: Date.now() - 1000 * 60 * 60 * 7,
+    authorName: 'Shaastra Experiential STEM Lab',
+    publisher: 'Shaastra Vidya Kendra Press',
     language: 'English',
-    genre: 'Literary Mystery',
+    genre: 'Science Workbook & Field Protocols',
+    targetAudience: 'Middle & High School Students (Grades 6–10)',
     copyrightYear: 2026,
-    characters: [
-      {
-        id: 'char-vik-1',
-        name: 'Raghavan Pillai',
-        role: 'Protagonist',
-        description: 'Quiet, methodical archivist from the Madras Literary Society who restores brittle 19th-century manuscripts.',
-        appearance: 'Thin frame, wire-rimmed spectacles, tweed coat worn thin at the elbows.',
-        notes: 'Suffers from chronic insomnia; walks the hill station paths at 3 AM.'
+    isbn: '978-81-945621-6-6',
+    cover: {
+      title: 'Shaastra Science Workbook',
+      subtitle: 'Field Protocols & Hypotheses Logs',
+      author: 'Shaastra STEM Lab',
+      bgColor: '#064E3B',
+      textColor: '#ECFDF5',
+      accentColor: '#10B981',
+      styleTemplate: 'report',
+      alignment: 'center',
+      borderStyle: 'single'
+    },
+    frontMatter: {
+      titlePage: {
+        enabled: true,
+        title: 'Shaastra Student Science & Inquiry Workbook',
+        subtitle: 'Hands-on Field Protocols, Hypotheses Logs & Experimental Data Sheets',
+        author: 'Shaastra Experiential STEM Lab',
+        publisher: 'Shaastra Vidya Kendra Press, New Delhi',
+        year: 2026
       },
-      {
-        id: 'char-vik-2',
-        name: 'Dr. Christopher Douglas',
-        role: 'Supporting',
-        description: 'Missing 74-year-old Scottish-Indian botanist who spent forty years breeding rare terrestrial orchids.',
-        notes: 'Believed to possess an unrecorded 1888 land survey map.'
+      dedication: {
+        enabled: true,
+        text: 'To every student who questions the textbook until the observation confirms it.'
+      },
+      preface: {
+        enabled: true,
+        title: 'Student Investigator Code',
+        content: 'Record only what your eyes, sensors, and balances register. An unexpected observation is not an error—it is often the doorway to an undiscovered law.'
+      },
+      aboutAuthor: {
+        enabled: true,
+        bio: 'The Shaastra STEM Lab designs inquiry-based experiments for rural and urban schools.'
       }
-    ],
+    },
     chapters: [
       {
-        id: uuidv4(),
-        title: 'Prologue: The Shadow Cast',
-        content: `<h1>Prologue: The Shadow Cast</h1><p class="lead"><em>Fog in Kodaikanal does not fall from the sky; it rises from the deep ravines like cold steam from a witch’s copper cauldron.</em></p><p>By four in the afternoon, Coaker’s Walk had ceased to exist. The valley below—with its terraced pear orchards and cluster of tin-roofed cottages—had dissolved into an impenetrable wall of white dampness. It was the sort of silence that felt alive, swallowing footsteps, the caw of mountain ravens, and the distant hum of bus diesel engines.</p><p>In the glasshouse perched on the cliff edge, the oil lamp remained lit. The tea in Dr. Douglas\'s porcelain mug was still lukewarm. But the botanist himself was gone, leaving behind only the open ledger of his <em>Flora Palniensis</em> and a damp pair of gardening shears driven deep into a tray of freshly watered moss.</p>`,
+        id: 'workbook-ch-1',
+        title: 'Laboratory Safety & Inquiry Code',
+        content: `<h1>Laboratory Safety & Inquiry Code</h1>
+<p class="lead">Science begins with respect: respect for the living creatures you observe, respect for hazardous chemicals, and respect for your colleagues\' safety.</p>
+<ul>
+  <li>Always wear safety goggles when heating liquids or working with glass apparatus.</li>
+  <li>Never taste any laboratory substance—even if it smells like vinegar or sugar.</li>
+  <li>Return living specimens (earthworms, pond snails, plant shoots) to their exact habitat after 15 minutes of non-invasive observation.</li>
+</ul>`,
         isBookmarked: true,
         status: 'final',
-        wordCount: 154,
-        order: 0
+        wordCount: 82,
+        order: 0,
+        guidance: 'Ethical conduct, equipment handling, and safety guidelines.'
       },
       {
-        id: uuidv4(),
-        title: 'Chapter 1: The Quiet Hill Town',
-        content: `<h2>Chapter 1: The Quiet Hill Town</h2><p>Raghavan stepped off the battered state transport bus at seven the next morning, his joints aching from twelve hours of hairpin bends ascending from the plains of Batlagundu.</p><p>The air smelled of eucalyptus smoke and damp pine needles. He pulled his muffler tighter around his chin and looked up at the gothic spire of the English church piercing through the vapor. He had come here to catalog old parish birth registers, not to investigate a missing person. But Kodaikanal had a way of entangling anyone who crossed the lake before sunrise.</p>`,
+        id: 'workbook-ch-2',
+        title: 'Investigation 1: Flora Diversity Survey',
+        content: `<h2>Investigation 1: Flora Diversity Survey</h2>
+<p><strong>Apparatus:</strong> 1m x 1m bamboo quadrat frame, magnifying loupe, centimeter scale, soil moisture probe.</p>
+<p><strong>Hypothesis:</strong> Shaded areas beneath neem canopies will exhibit lower grass density but higher moss and lichen varieties than open school sports fields.</p>
+<div style="border: 1px dashed #cbd5e1; padding: 12px; margin: 12px 0; background-color: #f8fafc;">
+  <strong>Observation Log Grid:</strong>
+  <p>Quadrat Location: ______________ | Date & Time: ______________</p>
+  <p>Count of distinct leaf morphologies: [ &nbsp; &nbsp; &nbsp; ]</p>
+  <p>Dominant soil texture: (Sandy / Loamy / Clayey / Humus-rich)</p>
+</div>`,
         isBookmarked: false,
-        status: 'draft',
-        wordCount: 104,
-        order: 1
-      },
-      {
-        id: uuidv4(),
-        title: 'Chapter 2: The Unwelcome Discovery',
-        content: `<h2>Chapter 2: The Unwelcome Discovery</h2><p>The latch to the greenhouse door had not been forced; it had been opened with a brass key that now dangled from the exterior lock. Inside, amidst the heavy scent of crushed ferns and damp loam, Raghavan discovered a folded sheet of vellum tucked beneath the ledger\'s calfskin spine.</p><p>It was not a botanical illustration. It was a handwritten receipt dated November 1947, acknowledging the deposit of a wooden deed-box in the vaults of the Imperial Bank of India.</p>`,
-        isBookmarked: true,
-        status: 'draft',
-        wordCount: 92,
-        order: 2
+        status: 'in_progress',
+        wordCount: 94,
+        order: 1,
+        guidance: 'Quadrat sampling, leaf vein classification, and soil data.'
       }
     ],
     assets: []
   },
 
-  // 7. Shaastra Student Science Workbook: Class IX
+  // 9. NEP IMPLEMENTATION: Institutional Implementation Framework
   {
-    id: 'demo-science-workbook',
-    title: 'Shaastra Student Science Workbook: Class IX',
-    subtitle: 'Hands-on Experiments, Observation Records & Inquiry Logs',
-    description: 'A student laboratory companion featuring structured inquiry worksheets, hypothesis tables, equipment checklists, and community capstone reflections aligned with contemporary science curricula.',
-    type: 'workbook',
-    blueprintId: 'student_workbook',
-    tags: ['Science Workbook', 'Class 9', 'Laboratory Records', 'STEM'],
+    id: 'demo-nep_implementation',
+    title: 'Institutional Implementation Framework (NEP)',
+    subtitle: 'Strategic Governance, Curricular Restructuring & Multi-Disciplinary Credit Operations',
+    description: 'A comprehensive governance whitepaper for university vice-chancellors, academic deans, and school principals transitioning to the National Education Policy 2020.',
+    type: 'nep_implementation',
+    blueprintId: 'nep_implementation',
+    tags: ['NEP 2020', 'Institutional Governance', 'Higher Education', 'Curriculum Reform'],
     isFavorite: false,
     status: 'final',
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 30,
-    updatedAt: Date.now() - 1000 * 60 * 60 * 18,
-    authorName: 'Shaastra Science Collective',
-    publisher: 'Shaastra Schools Division',
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 32,
+    updatedAt: Date.now() - 1000 * 60 * 60 * 5,
+    authorName: 'Academic Deans Council for Educational Excellence',
+    publisher: 'Shaastra Higher Education Policy Press',
     language: 'English',
-    genre: 'Student Science Workbook',
+    genre: 'Policy Framework & Institutional Whitepaper',
+    targetAudience: 'Vice Chancellors, College Principals, Academic Deans',
     copyrightYear: 2026,
+    isbn: '978-81-945621-7-3',
+    cover: {
+      title: 'Institutional Framework (NEP)',
+      subtitle: 'Strategic Governance & Curricular Restructuring',
+      author: 'Academic Deans Council',
+      bgColor: '#1E1B4B',
+      textColor: '#EEF2FF',
+      accentColor: '#818CF8',
+      styleTemplate: 'report',
+      alignment: 'center',
+      borderStyle: 'double'
+    },
+    frontMatter: {
+      titlePage: {
+        enabled: true,
+        title: 'Institutional Implementation Framework (NEP)',
+        subtitle: 'Strategic Governance, Curricular Restructuring & Multi-Disciplinary Credit Operations',
+        author: 'Academic Deans Council for Educational Excellence',
+        publisher: 'Shaastra Higher Education Policy Press, New Delhi',
+        year: 2026
+      },
+      dedication: {
+        enabled: true,
+        text: 'For educational leaders steering Indian institutions toward world-class multidisciplinary excellence.'
+      },
+      preface: {
+        enabled: true,
+        title: 'Executive Preface',
+        content: 'This document serves as an institutional blueprint for dismantling silos between science, arts and liberal studies, and technical disciplines, establishing credit transfer banks, and incorporating Indian Knowledge Systems.'
+      },
+      aboutAuthor: {
+        enabled: true,
+        bio: 'The Academic Deans Council comprises senior administrators across central, state, and autonomous universities.'
+      }
+    },
     chapters: [
       {
-        id: uuidv4(),
-        title: 'Laboratory Safety & Inquiry Code',
-        content: `<h1>Laboratory Safety & Inquiry Code</h1><p class="lead">Science is not what is written in the textbook; science is what you can verify through honest, careful measurement.</p><p>Before beginning any investigation in this workbook:</p><ol><li>Inspect all glassware for hairline fractures before applying heat.</li><li>Never taste, smell directly, or touch unfamiliar chemical salts or plant extracts.</li><li>Record anomalous or 'unexpected' results honestly. Some of history’s greatest discoveries occurred when experiments appeared to fail!</li></ol>`,
+        id: 'nep-ch-1',
+        title: 'Executive Mandate & Vision',
+        content: `<h1>Executive Mandate & Vision</h1>
+<p class="lead">The National Education Policy 2020 envisions an educational architecture that dismantles rigid disciplinary silos and honors student agency through multiple exit and entry pathways.</p>
+<p>For institutions transitioning from affiliate models to degree-granting autonomous status, this framework provides operational timelines, credit transfer protocols, and faculty retraining modules necessary to achieve compliance without compromising intellectual depth.</p>`,
         isBookmarked: true,
         status: 'final',
-        wordCount: 80,
-        order: 0
+        wordCount: 68,
+        order: 0,
+        guidance: 'Alignment with holistic, multi-disciplinary, and skill-based ideals.'
       },
       {
-        id: uuidv4(),
-        title: 'Investigation 1: Flora Diversity Survey',
-        content: `<h2>Investigation 1: Flora Diversity Survey</h2><p><strong>Objective:</strong> To measure plant species richness within a one-meter square quadrant on the school playground border.</p><p><strong>Apparatus:</strong> Four wooden pegs, 4 meters of jute twine, magnifying hand lens, metric ruler, specimen envelopes.</p><p><strong>Hypothesis:</strong> The shaded soil beneath the neem tree will host fewer flowering angiosperms but higher moss and lichen density than the sunlit football ground perimeter.</p>`,
+        id: 'nep-ch-2',
+        title: 'Curricular Restructuring (5+3+3+4)',
+        content: `<h2>Curricular Restructuring (5+3+3+4)</h2>
+<p>The restructuring demands that foundational years emphasize mother-tongue immersion and sensory play. In the secondary tier, students must have the liberty to combine physics with classical music, or computer coding with constitutional law, supported by an Academic Bank of Credits (ABC) digital ledger.</p>`,
         isBookmarked: false,
         status: 'final',
-        wordCount: 76,
-        order: 1
+        wordCount: 56,
+        order: 1,
+        guidance: 'Phased transitions across foundational, preparatory, and middle years.'
       },
       {
-        id: uuidv4(),
-        title: 'Investigation 2: Water Quality & Turbidity',
-        content: `<h2>Investigation 2: Water Quality & Turbidity</h2><p><strong>Objective:</strong> Compare transparency and suspended particulate count between tap water, open well water, and rain runoff.</p><p><strong>Method:</strong> Build a simple Secchi disk using a plastic jar lid painted in alternating black and white quadrants, attached to a graduated nylon cord.</p>`,
+        id: 'nep-ch-3',
+        title: 'Vocational & Experiential Integration',
+        content: `<h2>Vocational & Experiential Integration</h2>
+<p>No student should graduate with a bachelor\'s degree without at least 120 contact hours in a hands-on local workshop, agricultural cooperative, or industrial laboratory. Vocational credits must carry equal academic weight to theoretical lecture hours.</p>`,
+        isBookmarked: false,
+        status: 'in_progress',
+        wordCount: 46,
+        order: 2,
+        guidance: 'Setting up craft internships, maker labs, and community field hours.'
+      }
+    ],
+    assets: []
+  },
+
+  // 10. POETRY ANTHOLOGY: Monsoon & Terracotta
+  {
+    id: 'demo-poetry_collection',
+    title: 'Monsoon & Terracotta',
+    subtitle: 'Verses of Dawn, Rain, and the Clay of the Cauvery',
+    description: 'A delicate typographic sanctuary of free verse, classical Tamil Akam/Puram echoes, and quiet reflections on clay, water, and impermanence.',
+    type: 'poetry_collection',
+    blueprintId: 'poetry_collection',
+    tags: ['Poetry', 'Verse Anthology', 'Monsoon', 'Literary'],
+    isFavorite: true,
+    status: 'final',
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 10,
+    updatedAt: Date.now() - 1000 * 60 * 60 * 2,
+    authorName: 'Revathi Krishnan',
+    publisher: 'Shaastra Kavya Press',
+    language: 'English (with Sangam allusions)',
+    genre: 'Contemporary Poetry & Verse',
+    targetAudience: 'Poetry Lovers, Meditative Readers',
+    copyrightYear: 2026,
+    isbn: '978-81-945621-8-0',
+    cover: {
+      title: 'Monsoon & Terracotta',
+      subtitle: 'Verses of Dawn, Rain, and Clay',
+      author: 'Revathi Krishnan',
+      bgColor: '#431407',
+      textColor: '#FED7AA',
+      accentColor: '#F97316',
+      styleTemplate: 'minimal',
+      alignment: 'center',
+      borderStyle: 'single'
+    },
+    frontMatter: {
+      titlePage: {
+        enabled: true,
+        title: 'Monsoon & Terracotta',
+        subtitle: 'Verses of Dawn, Rain, and the Clay of the Cauvery',
+        author: 'Revathi Krishnan',
+        publisher: 'Shaastra Kavya Press, Thanjavur',
+        year: 2026
+      },
+      dedication: {
+        enabled: true,
+        text: 'To the potters of Manamadurai who turn red earth into song upon the wheel.'
+      },
+      preface: {
+        enabled: true,
+        title: 'Invocation',
+        content: 'Like red earth and pouring rain, our hearts have merged without parting. — Kuruntokai 40'
+      },
+      aboutAuthor: {
+        enabled: true,
+        bio: 'Revathi Krishnan is a bilingual poet and translator living along the banks of the Vennar.'
+      }
+    },
+    chapters: [
+      {
+        id: 'poetry-ch-1',
+        title: 'Dedication & Opening Stanza',
+        content: `<h1>Dedication & Opening Stanza</h1>
+<div style="font-family: Georgia, serif; font-style: italic; text-align: center; margin: 2.5rem 0; line-height: 2;">
+  <p>The potter does not speak to the clay;<br>
+  he wets his thumbs in river water<br>
+  and listens to the stone axis hum.</p>
+  <p>Before the first vessel rises,<br>
+  the shape was already resting<br>
+  in the silt of the summer dried tank.</p>
+</div>`,
+        isBookmarked: true,
+        status: 'final',
+        wordCount: 52,
+        order: 0,
+        guidance: 'The tone-setting invocation or epigraph.'
+      },
+      {
+        id: 'poetry-ch-2',
+        title: 'Cycle I: Morning & Mist',
+        content: `<h2>Cycle I: Morning & Mist</h2>
+<div style="font-family: Georgia, serif; font-style: italic; text-align: center; margin: 2rem 0; line-height: 2.2;">
+  <p>At four, before the crows take wing,<br>
+  the river is gray glass.<br>
+  A solitary woman sweeps the threshold with cow dung water,<br>
+  her chalk kolam tracing loops of rice flour<br>
+  for ants who have not yet prayed.</p>
+  <p>We are all visitors here,<br>
+  leaving white patterns on the dark flagstones<br>
+  that feet will scatter by noon.</p>
+</div>`,
+        isBookmarked: false,
+        status: 'final',
+        wordCount: 71,
+        order: 1,
+        guidance: 'Verses on dawn, ancestral soil, and unspoken longings.'
+      },
+      {
+        id: 'poetry-ch-3',
+        title: 'Cycle IV: Monsoons & Renewal',
+        content: `<h2>Cycle IV: Monsoons & Renewal</h2>
+<div style="font-family: Georgia, serif; font-style: italic; text-align: center; margin: 2rem 0; line-height: 2.2;">
+  <p>The first raindrop hits the hot terracotta tile<br>
+  with the sound of a struck bronze bell.<br>
+  The petrichor rises like incense from an open sanctum.</p>
+  <p>Drink, dry earth.<br>
+  Every thirst is forgiven<br>
+  when the sky forgets how to stay empty.</p>
+</div>`,
         isBookmarked: false,
         status: 'final',
         wordCount: 54,
-        order: 2
-      }
-    ],
-    assets: []
-  },
-
-  // 8. Institutional Implementation Framework for NEP 2020
-  {
-    id: 'demo-nep-framework',
-    title: 'Institutional Implementation Framework for NEP 2020',
-    subtitle: 'Strategic Roadmap for Multidisciplinary Higher Education Governance',
-    description: 'A comprehensive operational whitepaper designed for chancellors, deans, and academic councils detailing the transition toward flexible credit choice systems, regional language pedagogy, and vocational apprenticeships.',
-    type: 'report',
-    blueprintId: 'nep_implementation',
-    tags: ['NEP 2020', 'Higher Education', 'Policy Framework', 'Institutional Governance'],
-    isFavorite: false,
-    status: 'in_progress',
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 50,
-    updatedAt: Date.now() - 1000 * 60 * 60 * 8,
-    authorName: 'Shaastra Policy & Governance Council',
-    publisher: 'Shaastra University Press',
-    language: 'English',
-    genre: 'Policy Framework & Institutional Whitepaper',
-    copyrightYear: 2026,
-    isbn: '978-81-945621-8-0',
-    chapters: [
-      {
-        id: uuidv4(),
-        title: 'Executive Mandate & Vision',
-        content: `<h1>Executive Mandate & Vision</h1><p class="lead">The National Education Policy 2020 envisions an educational architecture that dismantling the rigid disciplinary boundaries dividing sciences, arts, and professional vocations.</p><p>For institutions transitioning from affiliate models to autonomous degree-granting universities, this framework provides operational timelines, credit transfer protocols, and faculty retraining modules necessary to achieve compliance without compromising intellectual depth.</p>`,
-        isBookmarked: true,
-        status: 'final',
-        wordCount: 72,
-        order: 0
-      },
-      {
-        id: uuidv4(),
-        title: 'Curricular Restructuring (5+3+3+4)',
-        content: `<h2>Curricular Restructuring (5+3+3+4)</h2><p>The restructuring demands that foundational years emphasize mother-tongue immersion and sensory play. In the secondary tier, students must have the liberty to combine physics with classical music, or computer coding with constitutional law, supported by an Academic Bank of Credits (ABC) digital ledger.</p>`,
-        isBookmarked: false,
-        status: 'final',
-        wordCount: 58,
-        order: 1
-      },
-      {
-        id: uuidv4(),
-        title: 'Vocational & Experiential Integration',
-        content: `<h2>Vocational & Experiential Integration</h2><p>No student should graduate with a bachelor\'s degree without at least 120 contact hours in a hands-on local workshop, agricultural cooperative, or industrial laboratory. Vocational credits must carry equal academic weight to theoretical lecture hours.</p>`,
-        isBookmarked: false,
-        status: 'in_progress',
-        wordCount: 50,
-        order: 2
+        order: 2,
+        guidance: 'Odes to the arrival of rain, green shoots, and rebirth.'
       }
     ],
     assets: []
@@ -657,10 +1001,10 @@ export const INITIAL_DEMO_DOCUMENTS: Book[] = [
 export const INITIAL_DEMO_PROJECTS: Project[] = [
   {
     id: 'proj-1',
-    title: 'Shaastra Delta Ecological Publications',
-    description: 'An integrated multi-book initiative publishing children’s river literature, botanical guides, and water policy studies across the Kaveri basin.',
+    title: 'Shaastra Delta Ecological Volumes',
+    description: 'An integrated multi-book initiative crafting children’s river literature, botanical guides, and water policy studies across the Kaveri basin.',
     category: 'Ecology & Community',
-    bookIds: ['demo-river-remembers', 'demo-economics-research'],
+    bookIds: ['demo-children', 'demo-academic_research', 'demo-poetry_collection'],
     notes: 'Coordinating with local community schools in Thanjavur and Tiruchirappalli for bilingual editions.',
     status: 'active',
     createdAt: Date.now() - 1000 * 60 * 60 * 24 * 30,
@@ -671,10 +1015,17 @@ export const INITIAL_DEMO_PROJECTS: Project[] = [
     title: 'Shaastra Pedagogy Transformation Suite',
     description: 'Institutional manuals, student experiential guides, and parent handbooks for deploying the Shaastra inquiry model nationwide.',
     category: 'Education & Governance',
-    bookIds: ['demo-student-guide', 'demo-teacher-guide', 'demo-parent-guide', 'demo-nep-framework'],
+    bookIds: ['demo-school_guide', 'demo-teacher_handbook', 'demo-parent_guide', 'demo-nep_implementation'],
     notes: 'Drafting unified rubrics and glossary of terms across Hindi, Tamil, and English editions.',
     status: 'active',
     createdAt: Date.now() - 1000 * 60 * 60 * 24 * 25,
     updatedAt: Date.now() - 1000 * 60 * 60 * 6
   }
 ];
+
+/**
+ * Returns the authentic demo book for any given blueprint ID.
+ */
+export function getDemoBookForBlueprint(blueprintId: string): Book | undefined {
+  return INITIAL_DEMO_DOCUMENTS.find(b => b.blueprintId === blueprintId || b.id === `demo-${blueprintId}`);
+}

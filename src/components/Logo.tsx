@@ -6,210 +6,327 @@
 import React from 'react';
 import { motion } from 'motion/react';
 
-export default function Logo({ className = "", compact = false }: { className?: string; compact?: boolean }) {
+interface LogoProps {
+  className?: string;
+  compact?: boolean;
+}
+
+export default function Logo({ className = "", compact = false }: LogoProps) {
   if (compact) {
     return (
-      <div className={`flex items-center gap-3 ${className}`}>
-        <div className="relative w-11 h-11 flex items-center justify-center shrink-0">
-          {/* Ambient Rotating Symmetrical Background Layers */}
+      <div className={`flex items-center gap-2.5 select-none ${className}`}>
+        {/* Compact Kinetic Emblem */}
+        <div className="relative w-10 h-10 flex items-center justify-center shrink-0">
+          {/* Outer rotating blueprint compass ring */}
           <motion.div 
             animate={{ rotate: 360 }}
-            transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0 border-[0.5px] border-editorial-text/10 rounded-full"
+            transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-0 rounded-full border border-editorial-accent/30 border-dashed"
           />
+          {/* Inner counter-rotating ring */}
           <motion.div 
             animate={{ rotate: -360 }}
-            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-1.5 border-[0.5px] border-editorial-accent/20 rounded-full border-dashed"
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-1 rounded-full border-[0.5px] border-editorial-text/20"
           />
+          {/* Subtle golden ambient glow */}
           <motion.div 
-            animate={{ scale: [1, 1.05, 1], opacity: [0.1, 0.15, 0.1] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute inset-2.5 bg-editorial-accent/15 blur-md rounded-full"
+            animate={{ scale: [0.95, 1.1, 0.95], opacity: [0.2, 0.4, 0.2] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute inset-1.5 bg-editorial-accent/20 rounded-full blur-xs"
           />
-          
-          <motion.div 
-            className="relative z-10 text-editorial-text scale-75 origin-center"
-          >
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              {/* Central Pillar */}
-              <path 
-                d="M12 4V20" 
+
+          {/* Central Animated Open Codex Emblem */}
+          <div className="relative z-10 text-editorial-accent flex items-center justify-center">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Central Spine */}
+              <motion.path 
+                d="M12 4.5V19.5" 
                 stroke="currentColor" 
-                strokeWidth="1.5" 
+                strokeWidth="2" 
                 strokeLinecap="round" 
               />
-              {/* Symmetrical Small Pages */}
-              {[6, 8].map((y, i) => (
-                <React.Fragment key={i}>
-                  <path
-                    d={`M12 ${y}C6 ${y} 4 ${y+4} 4 ${y+8}C4 ${y+10} 12 ${y+12} 12 ${y+12}`}
-                    stroke="currentColor"
-                    strokeWidth="1"
-                    strokeLinecap="round"
-                    opacity={0.5 - i * 0.15}
-                  />
-                  <path
-                    d={`M12 ${y}C18 ${y} 20 ${y+4} 20 ${y+8}C20 ${y+10} 12 ${y+12} 12 ${y+12}`}
-                    stroke="currentColor"
-                    strokeWidth="1"
-                    strokeLinecap="round"
-                    opacity={0.5 - i * 0.15}
-                  />
-                </React.Fragment>
-              ))}
-              <circle cx="12" cy="3" r="1.5" fill="currentColor" />
+              {/* Left Foliation */}
+              <motion.path
+                animate={{
+                  d: [
+                    "M12 6.5C8 4.5 4 5 2.5 6V18C4 17 8 16.5 12 18.5",
+                    "M12 6.5C8 5.2 4 5.5 2.5 6.5V18.5C4 17.5 8 17.2 12 18.5",
+                    "M12 6.5C8 4.5 4 5 2.5 6V18C4 17 8 16.5 12 18.5"
+                  ]
+                }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {/* Right Foliation */}
+              <motion.path
+                animate={{
+                  d: [
+                    "M12 6.5C16 4.5 20 5 21.5 6V18C20 17 16 16.5 12 18.5",
+                    "M12 6.5C16 5.2 20 5.5 21.5 6.5V18.5C20 17.5 16 17.2 12 18.5",
+                    "M12 6.5C16 4.5 20 5 21.5 6V18C20 17 16 16.5 12 18.5"
+                  ]
+                }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {/* Crown Diamond / Architectural Keystone */}
+              <motion.circle 
+                animate={{ scale: [1, 1.25, 1], opacity: [0.8, 1, 0.8] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                cx="12" 
+                cy="3" 
+                r="1.5" 
+                fill="#C05800" 
+              />
             </svg>
-          </motion.div>
+          </div>
         </div>
 
-        <div className="flex flex-col items-start leading-none min-w-0">
+        {/* Compact Title Typography */}
+        <div className="flex flex-col leading-none">
           <div className="flex items-baseline gap-1">
-            <span className="text-base font-serif italic font-bold tracking-tight text-editorial-text">Book</span>
-            <span className="text-[9px] font-bold tracking-[0.15em] uppercase text-editorial-accent">Builder</span>
+            <span className="font-serif italic font-bold text-sm tracking-tight text-editorial-text">Book</span>
+            <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-editorial-accent">Builder</span>
           </div>
-          <span className="text-[9px] font-mono font-bold tracking-[0.45em] uppercase text-editorial-muted mt-0.5">Shaastra</span>
+          <span className="text-[8px] font-mono font-bold tracking-[0.35em] uppercase text-editorial-muted mt-0.5">
+            Shaastra
+          </span>
         </div>
       </div>
     );
   }
 
+  // =========================================================================
+  // PROMINENT HERO LOGO: RELEVANT, ANIMATED, KINETIC, GEOMETRIC SHAASTRA
+  // =========================================================================
   return (
-    <div className={`flex flex-col items-center gap-2 ${className}`}>
-      <div className="relative w-20 h-20 flex items-center justify-center">
-        {/* Ornate Symmetrical Background Layers */}
+    <div className={`flex flex-col items-center select-none ${className}`}>
+      <div className="relative w-28 h-28 sm:w-32 sm:h-32 flex items-center justify-center">
+        {/* 1. Outermost Cosmic Blueprint Coordinate Ring (Shaastra Mandalam) */}
         <motion.div 
           animate={{ rotate: 360 }}
-          transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-          className="absolute inset-0 border-[0.5px] border-editorial-text/5 rounded-full"
-        />
+          transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-0 rounded-full border border-editorial-text/10"
+        >
+          {/* Golden Cardinal Markers (N, S, E, W) */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-editorial-accent rounded-full shadow-xs" />
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-editorial-accent rounded-full shadow-xs" />
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-editorial-accent rounded-full shadow-xs" />
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-editorial-accent rounded-full shadow-xs" />
+        </motion.div>
+
+        {/* 2. Middle Counter-Rotating Geometric Architecture Ring */}
         <motion.div 
           animate={{ rotate: -360 }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute inset-2 border-[0.5px] border-editorial-accent/10 rounded-full border-dashed"
-        />
-        
-        {/* Glow and Energy Layers */}
-        <motion.div 
-          animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.2, 0.1] }}
-          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute inset-4 bg-editorial-accent/20 blur-2xl rounded-full"
+          transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-2.5 rounded-full border border-editorial-accent/25 border-dashed"
         />
 
-        {/* Central Symmetrical Kinetic Icon */}
+        {/* 3. Golden Ratio Hexagram / Octagram Star Lattice */}
         <motion.div 
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 1.5, ease: "circOut" }}
-          className="relative z-10 text-editorial-text"
-        >
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          animate={{ rotate: [0, 90, 180, 270, 360] }}
+          transition={{ duration: 50, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-5 rounded-full border-[0.5px] border-editorial-accent/15"
+          style={{
+            backgroundImage: `radial-gradient(circle, transparent 60%, rgba(192, 88, 0, 0.08) 100%)`
+          }}
+        />
+
+        {/* 4. Ambient Radiant Aura (Pulsing Light of Creation) */}
+        <motion.div 
+          animate={{ 
+            scale: [0.92, 1.12, 0.92], 
+            opacity: [0.25, 0.5, 0.25] 
+          }}
+          transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute inset-4 rounded-full bg-gradient-to-tr from-amber-500/20 via-editorial-accent/25 to-orange-400/20 blur-md pointer-events-none"
+        />
+
+        {/* 5. Central Dynamic Codex: Moving Folios & Architectural Keystone */}
+        <div className="relative z-10 text-editorial-text drop-shadow-sm flex items-center justify-center">
+          <svg width="68" height="68" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <linearGradient id="logo-glow" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="currentColor" stopOpacity="0.8" />
-                <stop offset="50%" stopColor="currentColor" stopOpacity="1" />
-                <stop offset="100%" stopColor="currentColor" stopOpacity="0.8" />
+              <linearGradient id="shaastraSpine" x1="32" y1="8" x2="32" y2="56" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#E57D22" />
+                <stop offset="50%" stopColor="#C05800" />
+                <stop offset="100%" stopColor="#873C00" />
+              </linearGradient>
+
+              <linearGradient id="goldPageGradient" x1="12" y1="16" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#FFFDF2" stopOpacity="0.95" />
+                <stop offset="50%" stopColor="#FDFBD4" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#EBE5C4" stopOpacity="0.85" />
+              </linearGradient>
+
+              <linearGradient id="stylusGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#FFC837" />
+                <stop offset="100%" stopColor="#E57D22" />
               </linearGradient>
             </defs>
 
-            {/* Central Pillar */}
+            {/* Central Pillar of Knowledge (The Sthambha / Codex Spine) */}
             <motion.path 
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
-              transition={{ duration: 2, ease: "easeInOut" }}
-              d="M12 4V20" 
-              stroke="url(#logo-glow)" 
-              strokeWidth="1.5" 
+              transition={{ duration: 1.5, ease: "easeOut" }}
+              d="M32 10V54" 
+              stroke="url(#shaastraSpine)" 
+              strokeWidth="3.5" 
               strokeLinecap="round" 
             />
 
-            {/* Symmetrical Spreads (The "Pages" or "Wings") */}
-            {[4, 6, 8].map((y, i) => (
-              <React.Fragment key={i}>
-                <motion.path
-                  animate={{ 
-                    d: [
-                      `M12 ${y}C6 ${y} 4 ${y+4} 4 ${y+8}C4 ${y+10} 12 ${y+12} 12 ${y+12}`,
-                      `M12 ${y}C5 ${y} 3 ${y+4} 3 ${y+8}C3 ${y+10} 12 ${y+12} 12 ${y+12}`,
-                      `M12 ${y}C6 ${y} 4 ${y+4} 4 ${y+8}C4 ${y+10} 12 ${y+12} 12 ${y+12}`
-                    ]
-                  }}
-                  transition={{ duration: 4 + i, repeat: Infinity, ease: "easeInOut" }}
-                  stroke="currentColor"
+            {/* Bottom Foundation Pedestal (The Architectural Base) */}
+            <path 
+              d="M26 54H38" 
+              stroke="url(#shaastraSpine)" 
+              strokeWidth="2.5" 
+              strokeLinecap="round" 
+            />
+
+            {/* Layer 1: Base Open Manuscript Folios */}
+            <motion.path
+              d="M32 20C22 13 14 15 8 18V48C14 45 22 43 32 50C42 43 50 45 56 48V18C50 15 42 13 32 20Z"
+              fill="url(#goldPageGradient)"
+              stroke="currentColor"
+              strokeWidth="1.2"
+              className="text-editorial-border"
+            />
+
+            {/* Layer 2: Animated Turning Wings/Leaves (The Living Book) */}
+            <motion.path
+              animate={{
+                d: [
+                  "M32 17C21 11 13 13 7 16V46C13 43 21 41 32 47C43 41 51 43 57 46V16C51 13 43 11 32 17Z",
+                  "M32 17C22 13 15 14 8 18V48C15 44 22 43 32 47C42 43 49 44 56 48V18C49 14 42 13 32 17Z",
+                  "M32 17C21 11 13 13 7 16V46C13 43 21 41 32 47C43 41 51 43 57 46V16C51 13 43 11 32 17Z"
+                ]
+              }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              stroke="currentColor"
+              strokeWidth="1.5"
+              className="text-editorial-text"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+
+            {/* Inner Manuscript Lines (Text Rows symbolizing authored content) */}
+            {[26, 32, 38].map((y, idx) => (
+              <React.Fragment key={idx}>
+                {/* Left Page Rows */}
+                <motion.line
+                  animate={{ opacity: [0.4, 0.8, 0.4] }}
+                  transition={{ duration: 2.5, repeat: Infinity, delay: idx * 0.3 }}
+                  x1="14" y1={y} x2="26" y2={y + 1}
+                  stroke="#C05800"
                   strokeWidth="1"
                   strokeLinecap="round"
-                  opacity={0.6 - i * 0.15}
+                  opacity="0.5"
                 />
-                <motion.path
-                  animate={{ 
-                    d: [
-                      `M12 ${y}C18 ${y} 20 ${y+4} 20 ${y+8}C20 ${y+10} 12 ${y+12} 12 ${y+12}`,
-                      `M12 ${y}C19 ${y} 21 ${y+4} 21 ${y+8}C21 ${y+10} 12 ${y+12} 12 ${y+12}`,
-                      `M12 ${y}C18 ${y} 20 ${y+4} 20 ${y+8}C20 ${y+10} 12 ${y+12} 12 ${y+12}`
-                    ]
-                  }}
-                  transition={{ duration: 4 + i, repeat: Infinity, ease: "easeInOut" }}
-                  stroke="currentColor"
+                {/* Right Page Rows */}
+                <motion.line
+                  animate={{ opacity: [0.4, 0.8, 0.4] }}
+                  transition={{ duration: 2.5, repeat: Infinity, delay: idx * 0.3 + 0.2 }}
+                  x1="38" y1={y + 1} x2="50" y2={y}
+                  stroke="#C05800"
                   strokeWidth="1"
                   strokeLinecap="round"
-                  opacity={0.6 - i * 0.15}
+                  opacity="0.5"
                 />
               </React.Fragment>
             ))}
 
-            <motion.circle 
-              animate={{ r: [1.5, 2.5, 1.5], opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 3, repeat: Infinity }}
-              cx="12" cy="3" r="2" fill="currentColor" 
+            {/* Dynamic Kinetic Stylus / Master Quill Gliding Above the Manuscript */}
+            <motion.g
+              animate={{
+                x: [-3, 4, -3],
+                y: [-2, 2, -2],
+                rotate: [-6, 6, -6]
+              }}
+              transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+              style={{ transformOrigin: "32px 14px" }}
+            >
+              {/* Quill Feather Silhouette */}
+              <path
+                d="M32 6C34 9 37 12 36 17C35 19 33 21 32 24C31 21 29 19 28 17C27 12 30 9 32 6Z"
+                fill="url(#stylusGlow)"
+              />
+              <circle cx="32" cy="7" r="1.5" fill="#FFFDF2" />
+            </motion.g>
+
+            {/* Floating Sparkles / Golden Ink Dust */}
+            <motion.circle
+              animate={{ 
+                cx: [28, 30, 28], 
+                cy: [22, 19, 22], 
+                opacity: [0.3, 1, 0.3], 
+                scale: [0.8, 1.2, 0.8] 
+              }}
+              transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+              r="1.2"
+              fill="#E57D22"
+            />
+            <motion.circle
+              animate={{ 
+                cx: [36, 34, 36], 
+                cy: [21, 24, 21], 
+                opacity: [0.3, 0.9, 0.3], 
+                scale: [0.8, 1.2, 0.8] 
+              }}
+              transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+              r="1.2"
+              fill="#E57D22"
             />
           </svg>
-        </motion.div>
+        </div>
 
-        {/* Orbiting Elements */}
-        {[0, 120, 240].map((angle, i) => (
+        {/* Orbiting Celestial Sparks (Wisdom in Motion) */}
+        {[0, 180].map((angle, i) => (
           <motion.div
             key={i}
             animate={{ rotate: 360 }}
-            transition={{ duration: 10 + i * 5, repeat: Infinity, ease: "linear" }}
+            transition={{ duration: 18 + i * 8, repeat: Infinity, ease: "linear" }}
             className="absolute inset-0 pointer-events-none"
           >
-            <motion.div 
-              animate={{ scale: [1, 1.5, 1], opacity: [0.2, 0.5, 0.2] }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className="absolute top-0 left-1/2 -translate-x-1/2 w-1 h-1 bg-editorial-accent rounded-full"
-            />
+            <div className="absolute top-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-editorial-accent rounded-full shadow-[0_0_8px_#C05800]" />
           </motion.div>
         ))}
       </div>
 
-      <div className="flex flex-col items-center">
+      {/* Title & Brand Typography */}
+      <div className="flex flex-col items-center mt-2 text-center">
+        {/* Symmetric Flourish Lines */}
         <div className="flex items-center gap-3">
-          <div className="h-px w-8 bg-gradient-to-r from-transparent to-editorial-divider" />
-          <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-serif italic font-bold tracking-tight text-editorial-text">Book</span>
-            <span className="text-sm font-bold tracking-[0.2em] uppercase text-editorial-accent">Builder</span>
+          <div className="h-px w-6 sm:w-12 bg-gradient-to-r from-transparent to-editorial-accent/60" />
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl sm:text-3xl font-serif italic font-bold tracking-tight text-editorial-text">
+              Book
+            </span>
+            <span className="text-xs sm:text-sm font-bold tracking-[0.22em] uppercase text-editorial-accent">
+              Builder
+            </span>
           </div>
-          <div className="h-px w-8 bg-gradient-to-l from-transparent to-editorial-divider" />
-        </div>
-        
-        <div className="relative mt-1 py-1 px-8 overflow-hidden group">
-          <motion.div 
-            animate={{ x: ['-100%', '100%'] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0 bg-gradient-to-r from-transparent via-editorial-accent/10 to-transparent skew-x-12"
-          />
-          <span className="text-[10px] font-bold tracking-[0.6em] uppercase text-editorial-muted relative z-10 transition-colors group-hover:text-editorial-text">Shaastra</span>
+          <div className="h-px w-6 sm:w-12 bg-gradient-to-l from-transparent to-editorial-accent/60" />
         </div>
 
-        <motion.div 
-          animate={{ opacity: [0.3, 0.6, 0.3] }}
-          transition={{ duration: 4, repeat: Infinity }}
-          className="mt-4 flex items-center gap-4"
-        >
-          <div className="w-1.5 h-[1px] bg-editorial-accent" />
-          <span className="text-[8px] font-medium tracking-[0.5em] uppercase text-editorial-accent/60 whitespace-nowrap">Distinction in Writing</span>
-          <div className="w-1.5 h-[1px] bg-editorial-accent" />
-        </motion.div>
+        {/* Shaastra Golden Architectural Ribbon */}
+        <div className="relative mt-1 py-0.5 px-6 overflow-hidden">
+          <motion.div 
+            animate={{ x: ['-100%', '100%'] }}
+            transition={{ duration: 3.5, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-editorial-accent/15 to-transparent skew-x-12"
+          />
+          <span className="text-[11px] sm:text-xs font-mono font-bold tracking-[0.55em] uppercase text-editorial-muted">
+            Shaastra
+          </span>
+        </div>
       </div>
     </div>
   );

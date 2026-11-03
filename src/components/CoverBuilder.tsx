@@ -42,7 +42,7 @@ export default function CoverBuilder({ book, onUpdateCover }: CoverBuilderProps)
   const [textColor, setTextColor] = useState(currentCover.textColor || '#FFFFFF');
   const [accentColor, setAccentColor] = useState(currentCover.accentColor || '#D8F3DC');
   const [alignment, setAlignment] = useState<'left' | 'center' | 'right'>(currentCover.alignment || 'center');
-  const [borderStyle, setBorderStyle] = useState<'none' | 'simple' | 'ornate' | 'modern'>(currentCover.borderStyle || 'ornate');
+  const [borderStyle, setBorderStyle] = useState<'none' | 'simple' | 'ornate' | 'modern' | 'single' | 'double'>(currentCover.borderStyle || 'ornate');
   const [bgImage, setBgImage] = useState<string | undefined>(currentCover.bgImage || book.coverImage);
 
   const applyChanges = (updates: Partial<CoverConfig>) => {
@@ -92,7 +92,7 @@ export default function CoverBuilder({ book, onUpdateCover }: CoverBuilderProps)
       <div className="lg:col-span-6 space-y-6 bg-white p-6 rounded-xl border border-editorial-border shadow-xs">
         <div>
           <h3 className="text-base font-serif italic font-bold text-editorial-text mb-1">Cover Style Presets</h3>
-          <p className="text-xs text-editorial-muted mb-4">Choose a typographical aesthetic designed for publishing.</p>
+          <p className="text-xs text-editorial-muted mb-4">Choose a typographical aesthetic designed for elegant volumes.</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             {TEMPLATE_PRESETS.map((preset) => (
               <button
@@ -305,9 +305,15 @@ export default function CoverBuilder({ book, onUpdateCover }: CoverBuilderProps)
               style={{ borderColor: accentColor }}
             />
           )}
-          {borderStyle === 'simple' && (
+          {(borderStyle === 'simple' || borderStyle === 'single') && (
             <div
               className="absolute inset-3 border pointer-events-none rounded opacity-40 z-10"
+              style={{ borderColor: accentColor }}
+            />
+          )}
+          {borderStyle === 'double' && (
+            <div
+              className="absolute inset-3 border-4 border-double pointer-events-none rounded opacity-60 z-10"
               style={{ borderColor: accentColor }}
             />
           )}
@@ -318,7 +324,7 @@ export default function CoverBuilder({ book, onUpdateCover }: CoverBuilderProps)
               className="text-[9px] font-mono uppercase tracking-[0.3em] font-bold block"
               style={{ color: accentColor }}
             >
-              {book.publisher || 'Shaastra Publishing'}
+              {book.publisher || 'Shaastra Press'}
             </span>
           </div>
 

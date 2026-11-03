@@ -138,7 +138,7 @@ export default function ReferencesManager({
               resetForm();
               setIsAdding(true);
             }}
-            className="bg-editorial-text text-white hover:bg-black px-4 py-2 rounded font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shrink-0 transition-colors shadow-xs cursor-pointer"
+            className="bg-editorial-accent hover:bg-editorial-accent/90 text-white dark:bg-amber-600 dark:hover:bg-amber-500 dark:text-white px-4 py-2 rounded font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shrink-0 transition-colors shadow-xs cursor-pointer"
           >
             <Plus size={14} />
             <span>Add Reference</span>

@@ -200,7 +200,7 @@ export default function ShareModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="bg-editorial-bg border border-editorial-border rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header (Google Docs Style) */}
         <div className="p-4 sm:p-5 border-b border-editorial-divider flex items-center justify-between bg-editorial-sidebar/30">
@@ -305,7 +305,7 @@ export default function ShareModal({
                   {/* Owner Row */}
                   <div className="flex items-center justify-between p-2.5 bg-white border border-editorial-border/80 rounded-lg shadow-2xs">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-editorial-text text-white font-mono font-bold text-xs flex items-center justify-center">
+                      <div className="w-8 h-8 rounded-full bg-stone-900 text-white dark:bg-amber-500 dark:text-stone-950 font-mono font-bold text-xs flex items-center justify-center shrink-0">
                         {book.authorName?.charAt(0) || 'A'}
                       </div>
                       <div>

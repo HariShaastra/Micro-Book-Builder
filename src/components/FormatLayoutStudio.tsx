@@ -37,7 +37,7 @@ export default function FormatLayoutStudio({ book, onUpdate }: FormatLayoutStudi
   const [activeTab, setActiveTab] = useState<'borders' | 'toc' | 'geometry' | 'typography'>('borders');
 
   const pageSettings: PageSettings = book.pageSettings || {
-    size: 'Trade 6x9',
+    size: 'A4',
     margins: 'normal',
     orientation: 'portrait',
     headerText: book.title,
@@ -94,7 +94,7 @@ export default function FormatLayoutStudio({ book, onUpdate }: FormatLayoutStudi
     },
     {
       id: 'oxford',
-      name: 'Oxford Publishing Rule',
+      name: 'Oxford Architectural Rule',
       desc: 'Thick outer rule with an inset fine keyline.',
       sampleClass: 'border-2 border-editorial-text outline-1 outline-editorial-text -outline-offset-4'
     },
@@ -125,7 +125,7 @@ export default function FormatLayoutStudio({ book, onUpdate }: FormatLayoutStudi
   ];
 
   return (
-    <div className="w-full max-w-5xl space-y-6 select-none animate-in fade-in duration-200">
+    <div className="w-full max-w-5xl space-y-6 overflow-x-hidden animate-in fade-in duration-200">
       {/* 3-4 Line Instruction Guide */}
       <FacilityIntro
         title="Page Borders & Table of Contents Format Facility"
@@ -377,11 +377,13 @@ export default function FormatLayoutStudio({ book, onUpdate }: FormatLayoutStudi
                     onChange={(e) => handleUpdatePageSettings({ size: e.target.value as any })}
                     className="w-full bg-editorial-sidebar/20 border border-editorial-border rounded p-2 text-xs outline-none"
                   >
-                    <option value="Trade 6x9">US Trade 6" × 9" (Standard Fiction & Non-Fiction)</option>
-                    <option value="Digest 5.5x8.5">Digest 5.5" × 8.5" (Novellas & Poetry)</option>
-                    <option value="A5">A5 5.8" × 8.3" (International Standard)</option>
-                    <option value="Letter">US Letter 8.5" × 11" (Textbooks & Reports)</option>
-                    <option value="A4">A4 8.3" × 11.7" (Academic Dissertations)</option>
+                    <option value="A4">A4 (210 × 297 mm) — Default MS Word Standard</option>
+                    <option value="Letter">US Letter (8.5" × 11" / 216 × 279 mm)</option>
+                    <option value="A3">A3 (297 × 420 mm) — Large Spread Format</option>
+                    <option value="A5">A5 (148 × 210 mm) — Compact Handbook</option>
+                    <option value="Legal">US Legal (8.5" × 14" / 216 × 356 mm)</option>
+                    <option value="Executive">Executive (7.25" × 10.5")</option>
+                    <option value="Trade 6x9">US Trade 6" × 9" (Standard Volume)</option>
                   </select>
                 </div>
 

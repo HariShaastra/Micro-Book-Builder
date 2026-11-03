@@ -50,7 +50,9 @@ import {
   Frame,
   CloudOff,
   PanelLeftClose,
-  PanelLeft
+  PanelLeft,
+  MoreVertical,
+  Keyboard
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { cn, calculateWordCount } from '../lib/utils.ts';
@@ -61,11 +63,13 @@ import OutlineView from './OutlineView.tsx';
 import BookPreviewModal from './BookPreviewModal.tsx';
 import ExportModal from './ExportModal.tsx';
 import FindReplaceBar from './FindReplaceBar.tsx';
+import { countMatchesInHtml, replaceInHtml } from '../lib/findReplace.ts';
 import ReferencesManager from './ReferencesManager.tsx';
 import CiteAndLinkModal from './CiteAndLinkModal.tsx';
 import FacilityIntro from './FacilityIntro.tsx';
 import ShareModal from './ShareModal.tsx';
 import FormatLayoutStudio from './FormatLayoutStudio.tsx';
+import KeyboardShortcutsModal from './KeyboardShortcutsModal.tsx';
 import Logo from './Logo.tsx';
 import { useNotification } from '../contexts/NotificationContext.tsx';
 import { 
@@ -195,9 +199,32 @@ export default function Editor({
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [showCiteLinkModal, setShowCiteLinkModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const [showMobileMoreMenu, setShowMobileMoreMenu] = useState(false);
   const [isChapterSidebarOpen, setIsChapterSidebarOpen] = useState(true);
   const [lastSavedTime, setLastSavedTime] = useState<string>('Just now');
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('shaastra_autosave_enabled');
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch {
+      return true;
+    }
+  });
+  const [isManualSaving, setIsManualSaving] = useState(false);
+
+  // Toggle AutoSave functionality
+  const toggleAutoSave = () => {
+    setAutoSaveEnabled(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('shaastra_autosave_enabled', JSON.stringify(next));
+      } catch {}
+      notify(`AutoSave ${next ? 'enabled' : 'paused'}.`, next ? 'success' : 'info');
+      return next;
+    });
+  };
 
   // Real-time network and offline persistence listener
   useEffect(() => {
@@ -207,7 +234,7 @@ export default function Editor({
     };
     const handleOffline = () => {
       setIsOnline(false);
-      notify('Offline mode active. All progress is autosaved locally to device storage.', 'warning');
+      notify('Offline mode active. All progress is saved locally to device storage.', 'warning');
     };
 
     window.addEventListener('online', handleOnline);
@@ -252,6 +279,23 @@ export default function Editor({
     }
   };
 
+  // Dedicated manual force save (Alt+S)
+  const handleManualSave = useCallback(() => {
+    setIsManualSaving(true);
+    const updatedBook: Book = { ...book, updatedAt: Date.now() };
+    try {
+      localStorage.setItem(`shaastra_autosave_${book.id}`, JSON.stringify(updatedBook));
+      localStorage.setItem('shaastra_last_autosave_time', Date.now().toString());
+    } catch (e) {
+      console.warn('Manual save localStorage error:', e);
+    }
+    onUpdate(updatedBook);
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setLastSavedTime(timeStr);
+    setTimeout(() => setIsManualSaving(false), 500);
+    notify('Document saved to local storage.', 'success');
+  }, [book, onUpdate, notify]);
+
   const updateChapter = useCallback((chapterId: string, updates: Partial<Chapter>) => {
     const updatedChapters = book.chapters.map(c => {
       if (c.id === chapterId) {
@@ -265,17 +309,19 @@ export default function Editor({
     });
     const updatedBook: Book = { ...book, chapters: updatedChapters, updatedAt: Date.now() };
 
-    // Offline resilience: immediately persist to localStorage dedicated autosave cache
-    try {
-      localStorage.setItem(`shaastra_autosave_${book.id}`, JSON.stringify(updatedBook));
-      localStorage.setItem('shaastra_last_autosave_time', Date.now().toString());
-    } catch (e) {
-      console.warn('Local autosave error:', e);
+    // Offline resilience: if AutoSave is enabled, persist immediately
+    if (autoSaveEnabled) {
+      try {
+        localStorage.setItem(`shaastra_autosave_${book.id}`, JSON.stringify(updatedBook));
+        localStorage.setItem('shaastra_last_autosave_time', Date.now().toString());
+      } catch (e) {
+        console.warn('Local autosave error:', e);
+      }
+      setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     }
 
     onUpdate(updatedBook);
-    setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-  }, [book, onUpdate]);
+  }, [book, onUpdate, autoSaveEnabled]);
 
   const addChapter = () => {
     const newChapter: Chapter = {
@@ -306,20 +352,29 @@ export default function Editor({
     notify("Chapter removed.", "info");
   };
 
-  // Find & Replace Logic
-  const handleFind = (query: string): number => {
+  // Find & Replace Logic using safe text-node traversal
+  const handleFind = (query: string, options: { wholeWord: boolean; matchCase: boolean }): number => {
     if (!activeChapter || !query.trim()) return 0;
-    const regex = new RegExp(query, 'gi');
-    const matches = activeChapter.content.match(regex);
-    return matches ? matches.length : 0;
+    return countMatchesInHtml(activeChapter.content, query, options);
   };
 
-  const handleReplace = (find: string, replaceWith: string, replaceAll: boolean) => {
+  const handleReplace = (
+    find: string,
+    replaceWith: string,
+    replaceAll: boolean,
+    options: { wholeWord: boolean; matchCase: boolean; targetIndex: number }
+  ) => {
     if (!activeChapter || !find.trim()) return;
-    const regex = new RegExp(find, replaceAll ? 'gi' : 'i');
-    const newContent = activeChapter.content.replace(regex, replaceWith);
-    updateChapter(activeChapter.id, { content: newContent });
-    notify(`Replaced ${replaceAll ? 'all occurrences' : 'first match'}.`, 'success');
+    const { newHtml, replacedCount } = replaceInHtml(activeChapter.content, find, replaceWith, {
+      ...options,
+      replaceAll
+    });
+    if (replacedCount > 0) {
+      updateChapter(activeChapter.id, { content: newHtml });
+      notify(`Replaced ${replacedCount} ${replacedCount === 1 ? 'word match' : 'word matches'}.`, 'success');
+    } else {
+      notify('No matches found to replace.', 'info');
+    }
   };
 
   // Insert HTML into Chapter (from Cite & Link tool)
@@ -394,82 +449,254 @@ export default function Editor({
     notify('Research note recorded.', 'success');
   };
 
-  // Keyboard shortcut listener (Ctrl/Cmd + S, Ctrl/Cmd + F)
+  // Non-conflicting keyboard shortcuts listener (Alt+...)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        notify('Manual save confirmed.', 'success');
+      // Non-conflicting Alt+... shortcuts
+      if (e.altKey && !e.ctrlKey && !e.metaKey) {
+        if (e.key === 's' || e.key === 'S') {
+          e.preventDefault();
+          handleManualSave();
+        } else if (e.key === 'a' || e.key === 'A') {
+          e.preventDefault();
+          toggleAutoSave();
+        } else if (e.key === 'k' || e.key === 'K') {
+          e.preventDefault();
+          setShowShortcutsModal(prev => !prev);
+        } else if (e.key === 'p' || e.key === 'P') {
+          e.preventDefault();
+          setShowFullPreview(true);
+        } else if (e.key === 'e' || e.key === 'E') {
+          e.preventDefault();
+          setShowExportModal(true);
+        } else if (e.key === 'h' || e.key === 'H') {
+          e.preventDefault();
+          onBack();
+        } else if (e.key === 'd' || e.key === 'D') {
+          e.preventDefault();
+          onToggleTheme?.();
+        } else if (e.key === 'f' || e.key === 'F') {
+          e.preventDefault();
+          setShowFindReplace(prev => !prev);
+        }
       }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+
+      // Standard browser Ctrl/Cmd fallbacks for common user muscle memory
+      if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
         e.preventDefault();
-        setShowFindReplace(true);
+        handleManualSave();
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
+        e.preventDefault();
+        setShowFindReplace(prev => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [notify]);
+  }, [handleManualSave, onBack, onToggleTheme]);
 
   const totalWords = book.chapters.reduce((acc, c) => acc + (c.wordCount || 0), 0);
 
+    const editorTabsList = [
+    { id: 'writing', label: 'Editor', shortLabel: 'Editor', icon: FileText },
+    { id: 'outline', label: 'Outline', shortLabel: 'Outline', icon: ListTree },
+    { id: 'cover', label: 'Cover Designer', shortLabel: 'Cover', icon: Palette },
+    { id: 'format', label: 'Format & Borders', shortLabel: 'Format', icon: Frame },
+    { id: 'characters', label: 'Characters', shortLabel: 'Chars', icon: UserPlus },
+    { id: 'notes', label: 'Notes', shortLabel: 'Notes', icon: Quote },
+    { id: 'references', label: 'References', shortLabel: 'Refs', icon: Bookmark },
+    { id: 'versions', label: `Versions (${book.versions?.length || 0})`, shortLabel: `v(${book.versions?.length || 0})`, icon: History },
+  ] as const;
+
   return (
-    <div className="flex flex-col h-screen bg-editorial-bg text-editorial-text select-none overflow-hidden">
-      {/* 1. Global Top Navigation & Breadcrumb Bar */}
-      <header className="h-14 bg-editorial-sidebar border-b border-editorial-border px-4 flex items-center justify-between shrink-0 shadow-2xs z-20">
+    <div className="flex flex-col h-screen bg-editorial-bg text-editorial-text overflow-hidden">
+      {/* ========================================================================= */}
+      {/* 1. TOP BAR (Main Editorial App Bar) - Strictly 1 Row, Zero Clutter */}
+      {/* ========================================================================= */}
+      <header className="h-14 bg-editorial-sidebar dark:bg-stone-900 border-b border-editorial-border dark:border-stone-800 px-3 sm:px-4 lg:px-6 flex items-center justify-between shrink-0 shadow-2xs z-20 relative">
+        {/* Left Section: Back Button + Breadcrumbs + Autosave Indicator */}
         <div className="flex items-center gap-2 sm:gap-3 overflow-hidden min-w-0">
           <button
             onClick={onBack}
-            className="p-1.5 px-2.5 sm:px-3 bg-white/80 hover:bg-white text-editorial-text border border-editorial-border rounded-lg transition-colors flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider cursor-pointer shadow-2xs shrink-0"
+            className="h-8 px-2.5 sm:px-3 bg-white dark:bg-stone-800 text-editorial-text dark:text-stone-100 hover:bg-neutral-50 dark:hover:bg-stone-700 border border-editorial-border dark:border-stone-700 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-semibold shadow-2xs cursor-pointer shrink-0"
             title="Return to Dashboard"
           >
-            <ArrowLeft size={14} className="text-editorial-accent" />
-            <span className="hidden sm:inline">&larr; Back to Dashboard</span>
-            <span className="sm:hidden">&larr; Back</span>
+            <ArrowLeft size={14} className="text-editorial-accent dark:text-amber-400" />
+            <span className="hidden sm:inline">Dashboard</span>
+            <span className="sm:hidden">Back</span>
           </button>
 
-          <div className="hidden sm:block h-4 w-px bg-editorial-divider shrink-0" />
+          <div className="hidden sm:block h-4 w-px bg-editorial-divider dark:bg-stone-700 shrink-0" />
 
           {/* Breadcrumb Hierarchy */}
-          <div className="hidden md:flex items-center gap-1.5 overflow-hidden text-xs min-w-0">
-            <span className="font-serif italic font-bold text-editorial-text truncate max-w-[120px] lg:max-w-[180px]">
+          <div className="flex items-center gap-1.5 overflow-hidden text-xs min-w-0">
+            <span 
+              className="font-serif italic font-bold text-editorial-text dark:text-stone-100 truncate max-w-[100px] sm:max-w-[140px] md:max-w-[200px]" 
+              title={book.title}
+            >
               {book.title}
             </span>
-            <span className="text-editorial-muted font-mono">&rarr;</span>
-            <span className="text-editorial-muted font-serif truncate max-w-[100px] lg:max-w-[150px]">
-              {activeChapter?.title || 'Chapter'}
+            <span className="text-editorial-muted dark:text-stone-400 font-mono hidden md:inline">&rarr;</span>
+            <span className="text-editorial-muted dark:text-stone-400 font-serif truncate max-w-[90px] lg:max-w-[160px] hidden md:inline">
+              {viewTab === 'writing' ? (activeChapter?.title || 'Chapter') : viewTab.charAt(0).toUpperCase() + viewTab.slice(1)}
             </span>
+          </div>
+
+          {/* AutoSave Toggle Button */}
+          <button
+            type="button"
+            onClick={toggleAutoSave}
+            className={cn(
+              "h-8 px-2 sm:px-2.5 rounded-lg border text-xs font-mono font-medium flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs shrink-0",
+              autoSaveEnabled
+                ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800"
+                : "bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 border-stone-300 dark:border-stone-700"
+            )}
+            title={autoSaveEnabled ? "AutoSave is ON (Alt+A to toggle)" : "AutoSave is OFF (Alt+A to toggle)"}
+          >
+            <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", autoSaveEnabled ? "bg-emerald-500 animate-pulse" : "bg-stone-400")} />
+            <span className="hidden md:inline">{autoSaveEnabled ? 'AutoSave: ON' : 'AutoSave: OFF'}</span>
+            <span className="md:hidden text-[10px]">{autoSaveEnabled ? 'Auto' : 'Off'}</span>
+          </button>
+
+          {/* Dedicated Manual Save Button (Alt+S) */}
+          <button
+            type="button"
+            onClick={handleManualSave}
+            className={cn(
+              "h-8 px-2.5 sm:px-3 rounded-lg border border-editorial-border dark:border-stone-700 bg-white dark:bg-stone-800 hover:border-editorial-accent text-editorial-text dark:text-stone-100 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs shrink-0",
+              isManualSaving && "scale-95 bg-editorial-sidebar dark:bg-stone-700"
+            )}
+            title="Save document immediately to offline device storage (Alt+S)"
+          >
+            <Save size={13} className={cn("text-editorial-accent dark:text-amber-400", isManualSaving && "animate-spin")} />
+            <span className="hidden sm:inline">Save</span>
+          </button>
+
+          {/* Compact Network Status Badge */}
+          <div className="shrink-0 ml-1">
+            {!isOnline ? (
+              <div 
+                className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-mono border bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-200 border-amber-300 dark:border-amber-700 font-medium" 
+                title={`Offline mode active. Progress saved to local storage • ${lastSavedTime}`}
+              >
+                <CloudOff size={11} className="text-amber-600 shrink-0" />
+                <span className="hidden md:inline">Offline</span>
+                <span className="hidden xl:inline text-[10px] opacity-75">• {lastSavedTime}</span>
+              </div>
+            ) : (
+              <span className="text-[10px] font-mono text-editorial-muted dark:text-stone-400 hidden xl:inline">
+                Synced {lastSavedTime}
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Center Autosave & Offline / Cloud Status (Google Docs style) */}
-        <div className="flex items-center gap-1.5 text-[11px] font-mono shrink-0 mx-1">
-          {isOnline ? (
-            <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 sm:px-2.5 py-0.5 rounded-full border border-emerald-200/80 dark:border-emerald-800/60 font-semibold" title="All keystrokes autosaved and synced with cloud storage.">
-              <CheckCircle2 size={12} className="text-emerald-600" />
-              <span className="hidden sm:inline">Autosaved to Cloud</span>
-              <span className="sm:hidden">Saved</span>
-              <span className="text-[10px] opacity-75">• {lastSavedTime}</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/50 px-2 sm:px-2.5 py-0.5 rounded-full border border-amber-300 dark:border-amber-700 font-semibold" title="Offline mode active. Progress is securely autosaved to local device memory.">
-              <CloudOff size={12} className="text-amber-600" />
-              <span className="hidden sm:inline">Autosaved Offline</span>
-              <span className="sm:hidden">Offline</span>
-              <span className="text-[10px] opacity-75">• {lastSavedTime}</span>
-            </div>
-          )}
-        </div>
+        {/* Right Section: Harmonized Utility Tools & Actions */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Desktop Utilities (>=1024px) */}
+          <div className="hidden lg:flex items-center gap-1.5">
+            {/* Keyboard Shortcuts Button */}
+            <button
+              onClick={() => setShowShortcutsModal(true)}
+              className="h-8 px-2.5 bg-white dark:bg-stone-800 border border-editorial-border dark:border-stone-700 hover:border-editorial-accent rounded-lg text-xs font-semibold text-editorial-text dark:text-stone-200 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+              title="Keyboard Shortcuts Cheatsheet (Alt+K)"
+            >
+              <Keyboard size={13} className="text-editorial-accent dark:text-amber-400" />
+              <span className="hidden xl:inline">Shortcuts</span>
+            </button>
 
-        {/* Right Action Buttons */}
-        <div className="flex items-center gap-2 flex-wrap justify-end">
-          {/* Google Docs-style Share Button */}
+            {/* Find & Replace Button */}
+            <button
+              onClick={() => setShowFindReplace(!showFindReplace)}
+              className={cn(
+                "h-8 w-8 rounded-lg border transition-colors flex items-center justify-center cursor-pointer shadow-2xs",
+                showFindReplace
+                  ? "bg-editorial-sidebar dark:bg-stone-700 border-editorial-accent text-editorial-accent dark:text-amber-400"
+                  : "bg-white dark:bg-stone-800 border-editorial-border dark:border-stone-700 text-editorial-text dark:text-stone-200 hover:border-editorial-accent"
+              )}
+              title="Find & Replace Words (Alt+F)"
+            >
+              <Search size={14} />
+            </button>
+
+            {/* Cite & Link Works Button */}
+            <button
+              onClick={() => setShowCiteLinkModal(true)}
+              className="h-8 px-2.5 bg-white dark:bg-stone-800 border border-editorial-border dark:border-stone-700 hover:border-editorial-accent rounded-lg text-xs font-semibold text-editorial-accent dark:text-amber-400 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+              title="Cite external works or cross-link companion manuscripts"
+            >
+              <Link2 size={13} />
+              <span>Cite & Link</span>
+            </button>
+
+            {/* Preview Book Button */}
+            <button
+              onClick={() => setShowFullPreview(true)}
+              className="h-8 px-2.5 bg-white dark:bg-stone-800 border border-editorial-border dark:border-stone-700 hover:border-editorial-text rounded-lg text-xs font-semibold text-editorial-text dark:text-stone-200 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+              title="Preview Complete Book Page-by-Page"
+            >
+              <Eye size={13} />
+              <span>Preview Book</span>
+            </button>
+
+            {/* Theme Toggle Button */}
+            {onToggleTheme && (
+              <button
+                onClick={onToggleTheme}
+                className="h-8 w-8 rounded-lg border border-editorial-border dark:border-stone-700 bg-white dark:bg-stone-800 hover:border-editorial-text text-editorial-text dark:text-stone-200 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              >
+                {theme === 'dark' ? <Sun size={14} className="text-amber-400" /> : <Moon size={14} className="text-indigo-500" />}
+              </button>
+            )}
+          </div>
+
+          {/* Tablet Secondary Tools (640px - 1024px) */}
+          <div className="hidden sm:flex lg:hidden items-center gap-1">
+            <button
+              onClick={() => setShowFindReplace(!showFindReplace)}
+              className="h-8 w-8 rounded-lg border border-editorial-border dark:border-stone-700 bg-white dark:bg-stone-800 text-editorial-text dark:text-stone-200 hover:border-editorial-accent flex items-center justify-center cursor-pointer shadow-2xs"
+              title="Find & Replace (Ctrl+F)"
+            >
+              <Search size={14} />
+            </button>
+
+            <button
+              onClick={() => setShowCiteLinkModal(true)}
+              className="h-8 w-8 rounded-lg border border-editorial-border dark:border-stone-700 bg-white dark:bg-stone-800 text-editorial-accent dark:text-amber-400 hover:border-editorial-accent flex items-center justify-center cursor-pointer shadow-2xs"
+              title="Cite & Link Works"
+            >
+              <Link2 size={13} />
+            </button>
+
+            <button
+              onClick={() => setShowFullPreview(true)}
+              className="h-8 w-8 rounded-lg border border-editorial-border dark:border-stone-700 bg-white dark:bg-stone-800 text-editorial-text dark:text-stone-200 hover:border-editorial-accent flex items-center justify-center cursor-pointer shadow-2xs"
+              title="Preview Book"
+            >
+              <Eye size={14} />
+            </button>
+
+            {onToggleTheme && (
+              <button
+                onClick={onToggleTheme}
+                className="h-8 w-8 rounded-lg border border-editorial-border dark:border-stone-700 bg-white dark:bg-stone-800 text-editorial-text dark:text-stone-200 flex items-center justify-center cursor-pointer shadow-2xs"
+                title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              >
+                {theme === 'dark' ? <Sun size={14} className="text-amber-400" /> : <Moon size={14} className="text-indigo-500" />}
+              </button>
+            )}
+          </div>
+
+          {/* Primary Action 1: Google Docs-style Share Button */}
           <button
             onClick={() => setShowShareModal(true)}
-            className="px-3 py-1.5 bg-editorial-accent text-white hover:bg-editorial-accent/90 rounded font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+            className="h-8 px-2.5 sm:px-3 bg-editorial-accent hover:bg-editorial-accent/90 text-white rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer shrink-0"
             title="Share manuscript & collaborate (Google Docs style)"
           >
             <Share2 size={13} />
-            <span>Share</span>
+            <span className="hidden xs:inline">Share</span>
             {book.collaborators && book.collaborators.length > 0 && (
               <span className="w-4 h-4 rounded-full bg-white text-editorial-accent text-[9px] font-mono font-bold flex items-center justify-center">
                 {book.collaborators.length}
@@ -477,202 +704,188 @@ export default function Editor({
             )}
           </button>
 
-          {/* Zoho-style Cite & Link Works Button */}
-          <button
-            onClick={() => setShowCiteLinkModal(true)}
-            className="px-2.5 py-1.5 bg-white border border-editorial-border hover:border-editorial-accent rounded text-xs font-bold uppercase tracking-wider text-editorial-accent flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-            title="Cite external works or cross-link companion manuscripts"
-          >
-            <Link2 size={13} />
-            <span className="hidden md:inline">Cite & Link</span>
-          </button>
-
-          {/* Find & Replace Button */}
-          <button
-            onClick={() => setShowFindReplace(!showFindReplace)}
-            className="p-1.5 text-editorial-muted hover:text-editorial-text hover:bg-white/60 rounded cursor-pointer"
-            title="Find & Replace (Ctrl+F)"
-          >
-            <Search size={15} />
-          </button>
-
-          {/* Full Preview Modal Button */}
-          <button
-            onClick={() => setShowFullPreview(true)}
-            className="px-2.5 py-1.5 bg-white border border-editorial-border hover:border-editorial-text rounded text-xs font-bold uppercase tracking-wider text-editorial-text flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-            title="Preview Complete Book Page-by-Page"
-          >
-            <Eye size={13} />
-            <span className="hidden md:inline">Preview Book</span>
-          </button>
-
-          {/* Theme Toggle Button */}
-          {onToggleTheme && (
-            <button
-              onClick={onToggleTheme}
-              className="p-1.5 px-2.5 rounded-full border border-editorial-border hover:border-editorial-text text-editorial-text bg-white transition-all text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer shadow-2xs"
-              title={theme === 'dark' ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            >
-              {theme === 'dark' ? (
-                <>
-                  <Sun size={13} className="text-amber-500" />
-                  <span className="hidden sm:inline">Light</span>
-                </>
-              ) : (
-                <>
-                  <Moon size={13} className="text-indigo-500" />
-                  <span className="hidden sm:inline">Dark</span>
-                </>
-              )}
-            </button>
-          )}
-
-          {/* Export Button */}
+          {/* Primary Action 2: Export Button (High contrast in both light and dark mode) */}
           <button
             onClick={() => setShowExportModal(true)}
-            className="px-3 py-1.5 bg-editorial-text text-white hover:bg-black rounded font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+            className="h-8 px-2.5 sm:px-3 bg-stone-900 hover:bg-black text-white dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white rounded-lg font-bold text-xs flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer shrink-0"
+            title="Export to PDF, EPUB, DOCX, Markdown or HTML"
           >
             <Download size={13} />
-            <span className="hidden sm:inline">Export</span>
+            <span className="hidden xs:inline">Export</span>
           </button>
+
+          {/* Mobile Overflow Menu Button (<640px) */}
+          <div className="relative sm:hidden">
+            <button
+              onClick={() => setShowMobileMoreMenu(!showMobileMoreMenu)}
+              className={cn(
+                "h-8 w-8 rounded-lg border flex items-center justify-center cursor-pointer shadow-2xs transition-colors",
+                showMobileMoreMenu
+                  ? "bg-editorial-sidebar dark:bg-stone-700 border-editorial-accent text-editorial-accent"
+                  : "bg-white dark:bg-stone-800 border-editorial-border dark:border-stone-700 text-editorial-text dark:text-stone-200"
+              )}
+              title="More Tools"
+              aria-label="More Tools"
+            >
+              <MoreVertical size={15} />
+            </button>
+
+            {/* Mobile Dropdown Popover */}
+            {showMobileMoreMenu && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40 bg-black/20"
+                  onClick={() => setShowMobileMoreMenu(false)}
+                />
+                <div className="absolute right-0 top-10 w-48 bg-white dark:bg-stone-800 border border-editorial-border dark:border-stone-700 rounded-xl shadow-xl p-1.5 z-50 space-y-1 text-xs">
+                  <button
+                    onClick={() => {
+                      setShowFullPreview(true);
+                      setShowMobileMoreMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-editorial-sidebar dark:hover:bg-stone-700 text-editorial-text dark:text-stone-100 flex items-center gap-2 cursor-pointer"
+                  >
+                    <Eye size={14} className="text-editorial-accent" />
+                    <span>Preview Book</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowCiteLinkModal(true);
+                      setShowMobileMoreMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-editorial-sidebar dark:hover:bg-stone-700 text-editorial-text dark:text-stone-100 flex items-center gap-2 cursor-pointer"
+                  >
+                    <Link2 size={14} className="text-editorial-accent" />
+                    <span>Cite & Link Works</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowFindReplace(true);
+                      setShowMobileMoreMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-editorial-sidebar dark:hover:bg-stone-700 text-editorial-text dark:text-stone-100 flex items-center gap-2 cursor-pointer"
+                  >
+                    <Search size={14} className="text-editorial-accent" />
+                    <span>Find & Replace (Alt+F)</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowShortcutsModal(true);
+                      setShowMobileMoreMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-editorial-sidebar dark:hover:bg-stone-700 text-editorial-text dark:text-stone-100 flex items-center gap-2 cursor-pointer"
+                  >
+                    <Keyboard size={14} className="text-editorial-accent" />
+                    <span>Keyboard Shortcuts (Alt+K)</span>
+                  </button>
+
+                  {onToggleTheme && (
+                    <button
+                      onClick={() => {
+                        onToggleTheme();
+                        setShowMobileMoreMenu(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-editorial-sidebar dark:hover:bg-stone-700 text-editorial-text dark:text-stone-100 flex items-center gap-2 cursor-pointer border-t border-editorial-divider dark:border-stone-700 pt-2"
+                    >
+                      {theme === 'dark' ? (
+                        <>
+                          <Sun size={14} className="text-amber-400" />
+                          <span>Switch to Light Mode</span>
+                        </>
+                      ) : (
+                        <>
+                          <Moon size={14} className="text-indigo-500" />
+                          <span>Switch to Dark Mode</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* 2. Workspace Tabs Navigation Ribbon (Wrap beautifully with zero side-scrolling) */}
-      <div className="min-h-10 py-1.5 bg-white border-b border-editorial-border px-3 sm:px-4 flex flex-wrap items-center justify-between gap-1.5 shrink-0 z-10">
-        <div className="flex flex-wrap items-center gap-1">
-          {/* Sub-tab "Back to Writing Sheet" if on another tab */}
+      {/* ========================================================================= */}
+      {/* 2. SUB-NAV RIBBON - Strictly 1 Row, Zero Wrapping, Smooth Horizontal Scroll */}
+      {/* ========================================================================= */}
+      <div className="h-11 bg-white dark:bg-stone-900 border-b border-editorial-border dark:border-stone-800 px-2 sm:px-4 flex items-center justify-between gap-1.5 shrink-0 z-10 select-none overflow-hidden">
+        {/* Navigation Tabs Strip */}
+        <div className="flex-1 min-w-0 flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
           {viewTab !== 'writing' && (
             <button
               onClick={() => setViewTab('writing')}
-              className="mr-2 px-2.5 py-1 bg-editorial-sidebar text-editorial-text border border-editorial-border rounded text-xs font-bold uppercase tracking-wider flex items-center gap-1 hover:bg-editorial-sidebar/80 cursor-pointer"
+              className="shrink-0 mr-1 px-2 py-1 text-xs font-bold text-editorial-accent dark:text-amber-400 bg-editorial-accent/10 dark:bg-amber-400/10 hover:bg-editorial-accent/20 rounded flex items-center gap-1 cursor-pointer transition-colors"
               title="Return to the manuscript writing sheet"
             >
-              <ArrowLeft size={13} />
-              <span>&larr; Back to Writing</span>
+              <ArrowLeft size={12} />
+              <span className="hidden sm:inline">Back to Editor</span>
             </button>
           )}
 
-          <button
-            onClick={() => setViewTab('writing')}
-            className={cn(
-              "px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer flex items-center gap-1.5",
-              viewTab === 'writing' ? "bg-editorial-sidebar text-editorial-accent font-bold" : "text-editorial-muted hover:text-editorial-text"
-            )}
-          >
-            <FileText size={13} />
-            <span>Editor</span>
-          </button>
-
-          <button
-            onClick={() => setViewTab('outline')}
-            className={cn(
-              "px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer flex items-center gap-1.5",
-              viewTab === 'outline' ? "bg-editorial-sidebar text-editorial-accent font-bold" : "text-editorial-muted hover:text-editorial-text"
-            )}
-          >
-            <ListTree size={13} />
-            <span>Outline</span>
-          </button>
-
-          <button
-            onClick={() => setViewTab('cover')}
-            className={cn(
-              "px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer flex items-center gap-1.5",
-              viewTab === 'cover' ? "bg-editorial-sidebar text-editorial-accent font-bold" : "text-editorial-muted hover:text-editorial-text"
-            )}
-          >
-            <Palette size={13} />
-            <span>Cover Designer</span>
-          </button>
-
-          <button
-            onClick={() => setViewTab('format')}
-            className={cn(
-              "px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer flex items-center gap-1.5",
-              viewTab === 'format' ? "bg-editorial-sidebar text-editorial-accent font-bold" : "text-editorial-muted hover:text-editorial-text"
-            )}
-            title="Page Borders, Table of Contents, Margins & Typography"
-          >
-            <Frame size={13} />
-            <span>Format & Borders</span>
-          </button>
-
-          <button
-            onClick={() => setViewTab('characters')}
-            className={cn(
-              "px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer flex items-center gap-1.5",
-              viewTab === 'characters' ? "bg-editorial-sidebar text-editorial-accent font-bold" : "text-editorial-muted hover:text-editorial-text"
-            )}
-          >
-            <UserPlus size={13} />
-            <span>Characters</span>
-          </button>
-
-          <button
-            onClick={() => setViewTab('notes')}
-            className={cn(
-              "px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer flex items-center gap-1.5",
-              viewTab === 'notes' ? "bg-editorial-sidebar text-editorial-accent font-bold" : "text-editorial-muted hover:text-editorial-text"
-            )}
-          >
-            <Quote size={13} />
-            <span>Notes</span>
-          </button>
-
-          <button
-            onClick={() => setViewTab('references')}
-            className={cn(
-              "px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer flex items-center gap-1.5",
-              viewTab === 'references' ? "bg-editorial-sidebar text-editorial-accent font-bold" : "text-editorial-muted hover:text-editorial-text"
-            )}
-          >
-            <Quote size={13} />
-            <span>References</span>
-          </button>
-
-          <button
-            onClick={() => setViewTab('versions')}
-            className={cn(
-              "px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer flex items-center gap-1.5",
-              viewTab === 'versions' ? "bg-editorial-sidebar text-editorial-accent font-bold" : "text-editorial-muted hover:text-editorial-text"
-            )}
-          >
-            <History size={13} />
-            <span>Versions ({book.versions?.length || 0})</span>
-          </button>
+          {editorTabsList.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = viewTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setViewTab(tab.id as any)}
+                className={cn(
+                  "shrink-0 px-2.5 py-1 text-xs rounded-md transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap",
+                  isActive
+                    ? "bg-editorial-sidebar dark:bg-stone-800 text-editorial-accent dark:text-amber-400 font-bold shadow-2xs border border-editorial-border/80 dark:border-stone-700"
+                    : "text-editorial-muted dark:text-stone-400 hover:text-editorial-text dark:hover:text-stone-100 hover:bg-neutral-100 dark:hover:bg-stone-800/60"
+                )}
+                title={tab.label}
+              >
+                <Icon size={13} className={cn("shrink-0", isActive ? "text-editorial-accent dark:text-amber-400" : "opacity-70")} />
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.shortLabel}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Editor Mode Selector: WYSIWYG vs Content Blocks & Chapter Sidebar Toggle */}
+        {/* Contextual Editor Controls: Toggle Chapter Sidebar & WYSIWYG vs Blocks */}
         {viewTab === 'writing' && (
-          <div className="flex items-center gap-2">
+          <div className="shrink-0 flex items-center gap-1.5 pl-1.5 sm:pl-2 border-l border-editorial-border/60 dark:border-stone-800">
             <button
               onClick={() => setIsChapterSidebarOpen(!isChapterSidebarOpen)}
-              className="px-2.5 py-1 text-xs font-medium rounded-md border border-editorial-border bg-editorial-sidebar/60 text-editorial-text hover:bg-editorial-sidebar flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="h-7 px-2 text-xs font-medium rounded-md border border-editorial-border dark:border-stone-700 bg-editorial-sidebar/60 dark:bg-stone-800 text-editorial-text dark:text-stone-200 hover:bg-editorial-sidebar dark:hover:bg-stone-700 flex items-center gap-1 transition-colors cursor-pointer shrink-0"
               title={isChapterSidebarOpen ? "Hide Chapter Navigator" : "Show Chapter Navigator"}
             >
               {isChapterSidebarOpen ? <PanelLeftClose size={13} /> : <PanelLeft size={13} />}
-              <span className="hidden sm:inline">{isChapterSidebarOpen ? "Hide Chapters" : "Chapters"}</span>
+              <span className="hidden md:inline">{isChapterSidebarOpen ? "Hide Chapters" : "Chapters"}</span>
             </button>
 
-            <div className="flex items-center gap-1 bg-editorial-sidebar/60 border border-editorial-border p-0.5 rounded text-[11px] font-bold">
+            <div className="flex items-center bg-editorial-sidebar/60 dark:bg-stone-800 border border-editorial-border dark:border-stone-700 p-0.5 rounded-md text-[11px] font-semibold shrink-0">
               <button
                 onClick={() => setEditorMode('wysiwyg')}
                 className={cn(
-                  "px-2 py-0.5 rounded cursor-pointer",
-                  editorMode === 'wysiwyg' ? "bg-white text-editorial-accent shadow-xs" : "text-editorial-muted"
+                  "px-2 py-0.5 rounded transition-all cursor-pointer",
+                  editorMode === 'wysiwyg'
+                    ? "bg-white dark:bg-stone-700 text-editorial-accent dark:text-amber-400 shadow-2xs font-bold"
+                    : "text-editorial-muted dark:text-stone-400 hover:text-editorial-text"
                 )}
               >
-                Rich Text
+                <span className="hidden sm:inline">Rich Text</span>
+                <span className="sm:hidden">Rich</span>
               </button>
               <button
                 onClick={() => setEditorMode('blocks')}
                 className={cn(
-                  "px-2 py-0.5 rounded cursor-pointer",
-                  editorMode === 'blocks' ? "bg-white text-editorial-accent shadow-xs" : "text-editorial-muted"
+                  "px-2 py-0.5 rounded transition-all cursor-pointer",
+                  editorMode === 'blocks'
+                    ? "bg-white dark:bg-stone-700 text-editorial-accent dark:text-amber-400 shadow-2xs font-bold"
+                    : "text-editorial-muted dark:text-stone-400 hover:text-editorial-text"
                 )}
               >
-                Content Blocks
+                <span className="hidden sm:inline">Content Blocks</span>
+                <span className="sm:hidden">Blocks</span>
               </button>
             </div>
           </div>
@@ -752,7 +965,7 @@ export default function Editor({
         )}
 
         {/* Center Main Editor / Viewport Container */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center bg-editorial-bg">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 flex justify-center bg-editorial-bg select-text w-full max-w-full overflow-x-hidden">
           {/* TAB 1: WRITING (Rich Text or Blocks) */}
           {viewTab === 'writing' && activeChapter && (
             <div className="w-full max-w-3xl space-y-6">
@@ -766,7 +979,7 @@ export default function Editor({
                   "Use the toolbar to insert Word-like Tables, Info Boxes, or Tip Boxes.",
                   "Click 'Cite & Link' to cite bibliography sources or cross-link companion books."
                 ]}
-                tip="Press Ctrl+S for manual checkpoint save, or Ctrl+F to activate Find & Replace."
+                tip="Press Alt+S for manual checkpoint save, Alt+A to toggle AutoSave, or Alt+F for Find & Replace."
               />
 
               {/* Chapter Title Edit Header */}
@@ -790,8 +1003,10 @@ export default function Editor({
                   content={activeChapter.content}
                   onChange={(html) => updateChapter(activeChapter.id, { content: html })}
                   onOpenCiteLinkModal={() => setShowCiteLinkModal(true)}
+                  onOpenFindReplace={() => setShowFindReplace(true)}
                   placeholder="Begin drafting your prose freely..."
                   borderStyle={book.pageSettings?.borderStyle || 'classic-single'}
+                  pageSize={book.pageSettings?.size || 'A4'}
                 />
               ) : (
                 /* Mode 2: Content Block System */
@@ -1172,6 +1387,12 @@ export default function Editor({
           }}
         />
       )}
+
+      {/* 7. Non-Conflicting Keyboard Shortcuts Cheatsheet Modal */}
+      <KeyboardShortcutsModal
+        isOpen={showShortcutsModal}
+        onClose={() => setShowShortcutsModal(false)}
+      />
     </div>
   );
 }

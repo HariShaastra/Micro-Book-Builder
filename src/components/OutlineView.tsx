@@ -113,18 +113,18 @@ export default function OutlineView({
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto py-4 select-none">
+    <div className="space-y-6 max-w-4xl mx-auto py-4 w-full overflow-x-hidden">
       {/* Outline Header */}
-      <div className="flex items-center justify-between bg-white p-5 rounded-lg border border-editorial-border shadow-xs">
+      <div className="flex items-center justify-between bg-white dark:bg-stone-900 p-5 rounded-lg border border-editorial-border dark:border-stone-800 shadow-xs">
         <div>
-          <h2 className="text-xl font-serif italic font-bold text-editorial-text">Manuscript Outline</h2>
-          <p className="text-xs text-editorial-muted">
+          <h2 className="text-xl font-serif italic font-bold text-editorial-text dark:text-stone-100">Manuscript Outline</h2>
+          <p className="text-xs text-editorial-muted dark:text-stone-400">
             Organise chapters, sub-sections, and sequence your book’s structural flow.
           </p>
         </div>
         <button
           onClick={addChapter}
-          className="bg-editorial-text text-white hover:bg-black px-4 py-2 rounded font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+          className="bg-editorial-accent hover:bg-editorial-accent/90 text-white dark:bg-amber-600 dark:hover:bg-amber-500 dark:text-white px-4 py-2 rounded font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
         >
           <Plus size={14} />
           <span>Add Chapter</span>

@@ -11,7 +11,9 @@ import {
   Project, 
   Asset, 
   ReferenceItem, 
-  DocumentStatus 
+  DocumentStatus,
+  DocumentCategory,
+  DocumentSubCategory
 } from '../types.ts';
 import { 
   Plus, 
@@ -39,6 +41,8 @@ import {
   Edit3, 
   ExternalLink,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   Sparkles,
   Layers,
   CheckCircle2,
@@ -50,9 +54,15 @@ import {
   CheckSquare2,
   XCircle,
   Lightbulb,
-  Share2
+  Share2,
+  Eye,
+  Keyboard,
+  FolderOpen,
+  Tag,
+  Filter
 } from 'lucide-react';
 import Logo from './Logo.tsx';
+import { getDemoBookForBlueprint } from '../lib/demoData.ts';
 import { User, auth, signInWithPopup, googleProvider } from '../lib/firebase.ts';
 import { useNotification } from '../contexts/NotificationContext.tsx';
 import { cn, formatDate } from '../lib/utils.ts';
@@ -61,6 +71,9 @@ import MediaLibraryModal from './MediaLibraryModal.tsx';
 import DetailedGuide from './DetailedGuide.tsx';
 import FacilityIntro from './FacilityIntro.tsx';
 import ShareModal from './ShareModal.tsx';
+import CategoryManagerModal from './CategoryManagerModal.tsx';
+import KeyboardShortcutsModal, { SHORTCUTS_LIST } from './KeyboardShortcutsModal.tsx';
+import EditorKeyLegend from './EditorKeyLegend.tsx';
 import { NavTab } from './Sidebar.tsx';
 
 interface DashboardProps {
@@ -83,6 +96,48 @@ interface DashboardProps {
   onToggleTheme: () => void;
   onBack?: () => void;
 }
+
+const DEFAULT_DOCUMENT_CATEGORIES: DocumentCategory[] = [
+  {
+    id: 'cat-fiction',
+    name: 'Fiction & Literature',
+    color: '#C05800',
+    subCategories: [
+      { id: 'sub-novel', name: 'Novels & Multi-Chapter' },
+      { id: 'sub-children', name: 'Children & Illustrated' },
+      { id: 'sub-poetry', name: 'Poetry & Anthologies' }
+    ]
+  },
+  {
+    id: 'cat-educational',
+    name: 'Educational & Guides',
+    color: '#059669',
+    subCategories: [
+      { id: 'sub-teacher', name: 'Teacher Handbooks' },
+      { id: 'sub-student', name: 'Student Guides' },
+      { id: 'sub-parent', name: 'Parent Companions' }
+    ]
+  },
+  {
+    id: 'cat-academic',
+    name: 'Academic & Research',
+    color: '#2563EB',
+    subCategories: [
+      { id: 'sub-research', name: 'Field Reports' },
+      { id: 'sub-policy', name: 'Policy Whitepapers' },
+      { id: 'sub-dissertation', name: 'Theses & Monographs' }
+    ]
+  },
+  {
+    id: 'cat-workbooks',
+    name: 'Workbooks & Journals',
+    color: '#7C3AED',
+    subCategories: [
+      { id: 'sub-science', name: 'Science Workbooks' },
+      { id: 'sub-reflection', name: 'Reflection Logs' }
+    ]
+  }
+];
 
 export default function Dashboard({
   books,
@@ -115,6 +170,46 @@ export default function Dashboard({
   const [showMediaModal, setShowMediaModal] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [sharingBook, setSharingBook] = useState<Book | null>(null);
+
+  // Document Folder & Category states
+  const [documentCategories, setDocumentCategories] = useState<DocumentCategory[]>(() => {
+    try {
+      const saved = localStorage.getItem('shaastra_document_categories');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return DEFAULT_DOCUMENT_CATEGORIES;
+  });
+  const [selectedFolderId, setSelectedFolderId] = useState<string>('all');
+  const [selectedSubFolderId, setSelectedSubFolderId] = useState<string>('all');
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const [showWhatIsBox, setShowWhatIsBox] = useState(false);
+  const [showWhyBox, setShowWhyBox] = useState(false);
+  const [homeSearchQuery, setHomeSearchQuery] = useState('');
+  const [homeViewMode, setHomeViewMode] = useState<'grid' | 'list'>('grid');
+
+  const handleSaveCategories = (newCats: DocumentCategory[]) => {
+    setDocumentCategories(newCats);
+    try {
+      localStorage.setItem('shaastra_document_categories', JSON.stringify(newCats));
+    } catch {}
+    notify('Categories & folders saved.', 'success');
+  };
+
+  const handleAssignCategory = (book: Book, catId: string, subId?: string) => {
+    const cat = documentCategories.find(c => c.id === catId);
+    const sub = cat?.subCategories.find(s => s.id === subId);
+    const updated: Book = {
+      ...book,
+      categoryId: catId === 'none' ? undefined : catId,
+      category: catId === 'none' ? undefined : (cat?.name || undefined),
+      subCategoryId: subId === 'none' ? undefined : subId,
+      subCategory: subId === 'none' ? undefined : (sub?.name || undefined),
+      updatedAt: Date.now()
+    };
+    onUpdateBook(updated);
+    notify(`Document categorized under "${cat?.name || 'Uncategorized'}".`, 'info');
+  };
 
   // User Profile
   const [penName, setPenName] = useState(
@@ -161,14 +256,26 @@ export default function Dashboard({
                           activeTab === 'published' ? books.filter(b => b.status === 'published' || b.status === 'exported') :
                           nonArchivedBooks)
     .filter(b => {
+      const activeCat = documentCategories.find(c => c.id === selectedFolderId);
+      const matchesFolder = selectedFolderId === 'all' || 
+        b.categoryId === selectedFolderId || 
+        (activeCat && b.category === activeCat.name);
+
+      const activeSub = activeCat?.subCategories.find(s => s.id === selectedSubFolderId);
+      const matchesSubFolder = selectedSubFolderId === 'all' ||
+        b.subCategoryId === selectedSubFolderId ||
+        (activeSub && b.subCategory === activeSub.name);
+
       const matchesSearch = 
         b.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (b.subtitle && b.subtitle.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (b.description && b.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (b.authorName && b.authorName.toLowerCase().includes(searchQuery.toLowerCase()));
+        (b.authorName && b.authorName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (b.category && b.category.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (b.subCategory && b.subCategory.toLowerCase().includes(searchQuery.toLowerCase()));
 
       const matchesStatus = statusFilter === 'all' || b.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus && matchesFolder && matchesSubFolder;
     })
     .sort((a, b) => {
       if (sortBy === 'title') return a.title.localeCompare(b.title);
@@ -187,7 +294,7 @@ export default function Dashboard({
   const totalChapters = books.reduce((acc, b) => acc + b.chapters.length, 0);
 
   // Template categories
-  const categories = ['All', 'Fiction', 'Children\'s', 'Academic', 'Educational', 'Guide', 'Report', 'Workbook', 'Poetry', 'Custom'];
+  const templateCategoriesList = ['All', 'Fiction', 'Children\'s', 'Academic', 'Educational', 'Guide', 'Report', 'Workbook', 'Poetry', 'Custom'];
   const filteredTemplates = TEMPLATES.filter(t => 
     templateCategory === 'All' || t.category === templateCategory
   );
@@ -196,7 +303,7 @@ export default function Dashboard({
   const continueBook = nonArchivedBooks[0];
 
   return (
-    <div className="flex-1 bg-editorial-bg min-h-screen p-4 sm:p-8 lg:p-10 max-w-7xl mx-auto space-y-8 select-none">
+    <div className="flex-1 bg-editorial-bg min-h-screen p-4 sm:p-8 lg:p-10 max-w-7xl mx-auto space-y-8 w-full max-w-full overflow-x-hidden">
       {/* Universal Top "Back" Button Bar for all sub-views */}
       {activeTab !== 'home' && (
         <div className="flex items-center justify-between bg-white p-3.5 px-5 rounded-xl border border-editorial-border shadow-xs animate-in fade-in duration-150">
@@ -238,14 +345,14 @@ export default function Dashboard({
 
             {/* Subtext explaining what the app is */}
             <p className="text-sm sm:text-base font-serif text-editorial-text max-w-2xl mx-auto leading-relaxed pt-1">
-              A focused digital writing and publishing studio for manually structuring, drafting, and publishing books with full authorial control.
+              A focused digital writing and book creation studio for manually structuring, drafting, and crafting books with full authorial control.
             </p>
 
             {/* Quick Action Navigation Buttons */}
             <div className="pt-4 flex flex-wrap items-center justify-center gap-2.5">
               <button
                 onClick={onOpenNewBookWizard}
-                className="bg-editorial-text text-white hover:bg-black px-5 py-2.5 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-2 shadow-md transition-all cursor-pointer"
+                className="bg-editorial-accent hover:bg-editorial-accent/90 text-white dark:bg-amber-600 dark:hover:bg-amber-500 dark:text-white px-5 py-2.5 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-2 shadow-md transition-all cursor-pointer shrink-0"
               >
                 <Plus size={16} />
                 <span>+ New Book</span>
@@ -281,142 +388,190 @@ export default function Dashboard({
                 <HelpCircle size={14} className="text-editorial-accent" />
                 <span>The Handbook</span>
               </button>
+
+              <button
+                onClick={() => setShowShortcutsModal(true)}
+                className="bg-white hover:bg-neutral-50 border border-editorial-border px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider text-editorial-text transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
+                title="View Non-Conflicting Keyboard Shortcuts (Alt+K)"
+              >
+                <Keyboard size={14} className="text-editorial-accent dark:text-amber-400" />
+                <span>Shortcuts</span>
+              </button>
             </div>
           </div>
 
-          {/* BOX 1: What is Book Builder Shaastra — and How to Use It (in brief) */}
-          <div className="bg-white border border-editorial-border rounded-2xl p-6 sm:p-8 shadow-xs space-y-4">
-            <div className="flex items-center gap-2.5 border-b border-editorial-divider pb-3">
-              <Compass size={20} className="text-editorial-accent" />
-              <h2 className="text-xl sm:text-2xl font-serif italic font-bold text-editorial-text">
-                What is Book Builder Shaastra — and How to Use It (In Brief)
-              </h2>
-            </div>
-
-            <p className="text-xs sm:text-sm font-serif leading-relaxed text-editorial-text">
-              <strong>Book Builder Shaastra</strong> is an architectural book publishing environment engineered for human authors, educators, and students. Instead of treating documents as endless unorganized streams, it equips you with hierarchical chapters, Word-like tables, callout boxes, citation management, visual cover crafting, and instant export into archival PDF and Word (.docx).
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 font-sans text-xs">
-              <div className="bg-editorial-sidebar/40 p-4 rounded-xl border border-editorial-border/60 space-y-1.5">
-                <div className="w-6 h-6 rounded-full bg-editorial-text text-white font-mono font-bold text-[11px] flex items-center justify-center">
-                  1
+          {/* BOX 1: What is Book Builder Shaastra — Dropdown Accordion */}
+          <div className="bg-white border border-editorial-border rounded-2xl p-5 sm:p-6 shadow-xs transition-all">
+            <button
+              type="button"
+              onClick={() => setShowWhatIsBox(!showWhatIsBox)}
+              className="w-full flex items-center justify-between text-left cursor-pointer group select-none gap-3"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-editorial-sidebar flex items-center justify-center text-editorial-accent shrink-0 group-hover:scale-105 transition-transform">
+                  <Compass size={19} />
                 </div>
-                <h4 className="font-bold text-editorial-text uppercase tracking-wider text-[11px]">
-                  Initiate Your Book
-                </h4>
-                <p className="text-[11px] text-editorial-muted leading-relaxed font-serif">
-                  Click <em>+ New Book</em> to start from scratch, select a blueprint (Fiction, Children's, Academic, Science), or upload a Word/Markdown draft.
-                </p>
+                <div>
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-editorial-accent font-bold">
+                    Introduction & Overview
+                  </span>
+                  <h2 className="text-base sm:text-xl font-serif italic font-bold text-editorial-text group-hover:text-editorial-accent transition-colors leading-tight">
+                    What is Book Builder Shaastra — and How to Use It (In Brief)
+                  </h2>
+                </div>
               </div>
 
-              <div className="bg-editorial-sidebar/40 p-4 rounded-xl border border-editorial-border/60 space-y-1.5">
-                <div className="w-6 h-6 rounded-full bg-editorial-text text-white font-mono font-bold text-[11px] flex items-center justify-center">
-                  2
-                </div>
-                <h4 className="font-bold text-editorial-text uppercase tracking-wider text-[11px]">
-                  Sequence the Outline
-                </h4>
-                <p className="text-[11px] text-editorial-muted leading-relaxed font-serif">
-                  Structure your volume in the <em>Outline</em> workspace. Reorder chapters with drag-and-drop, configure subsections, and set front matter.
-                </p>
+              <div className="flex items-center gap-1.5 text-xs text-editorial-muted font-mono bg-editorial-sidebar/60 px-3 py-1.5 rounded-lg border border-editorial-border/60 shrink-0">
+                <span className="hidden sm:inline font-sans">{showWhatIsBox ? 'Collapse' : 'Click to Read'}</span>
+                {showWhatIsBox ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
               </div>
+            </button>
 
-              <div className="bg-editorial-sidebar/40 p-4 rounded-xl border border-editorial-border/60 space-y-1.5">
-                <div className="w-6 h-6 rounded-full bg-editorial-text text-white font-mono font-bold text-[11px] flex items-center justify-center">
-                  3
-                </div>
-                <h4 className="font-bold text-editorial-text uppercase tracking-wider text-[11px]">
-                  Draft with Word-like Tools
-                </h4>
-                <p className="text-[11px] text-editorial-muted leading-relaxed font-serif">
-                  Write on pure manuscript paper. Insert Word-like tables, custom callout boxes, character registers, and Zoho-style linked works.
+            {showWhatIsBox && (
+              <div className="pt-4 mt-4 border-t border-editorial-divider space-y-4 animate-in fade-in duration-200">
+                <p className="text-xs sm:text-sm font-serif leading-relaxed text-editorial-text">
+                  <strong>Book Builder Shaastra</strong> is an architectural book creation environment engineered for dedicated authors, educators, and students. Instead of treating documents as endless unorganized streams, it equips you with hierarchical chapters, Word-like tables, callout boxes, citation management, visual cover crafting, and instant export into archival PDF and Word (.docx).
                 </p>
-              </div>
 
-              <div className="bg-editorial-sidebar/40 p-4 rounded-xl border border-editorial-border/60 space-y-1.5">
-                <div className="w-6 h-6 rounded-full bg-editorial-text text-white font-mono font-bold text-[11px] flex items-center justify-center">
-                  4
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 font-sans text-xs">
+                  <div className="bg-editorial-sidebar/40 p-4 rounded-xl border border-editorial-border/60 space-y-1.5">
+                    <div className="w-6 h-6 rounded-full bg-stone-900 text-white dark:bg-amber-500 dark:text-stone-950 font-mono font-bold text-[11px] flex items-center justify-center shrink-0 shadow-xs">
+                      1
+                    </div>
+                    <h4 className="font-bold text-editorial-text uppercase tracking-wider text-[11px]">
+                      Initiate Your Book
+                    </h4>
+                    <p className="text-[11px] text-editorial-muted leading-relaxed font-serif">
+                      Click <em>+ New Book</em> to start from scratch, select a blueprint (Fiction, Children's, Academic, Science), or upload a Word/Markdown draft.
+                    </p>
+                  </div>
+
+                  <div className="bg-editorial-sidebar/40 p-4 rounded-xl border border-editorial-border/60 space-y-1.5">
+                    <div className="w-6 h-6 rounded-full bg-stone-900 text-white dark:bg-amber-500 dark:text-stone-950 font-mono font-bold text-[11px] flex items-center justify-center shrink-0 shadow-xs">
+                      2
+                    </div>
+                    <h4 className="font-bold text-editorial-text uppercase tracking-wider text-[11px]">
+                      Sequence the Outline
+                    </h4>
+                    <p className="text-[11px] text-editorial-muted leading-relaxed font-serif">
+                      Structure your volume in the <em>Outline</em> workspace. Reorder chapters with drag-and-drop, configure subsections, and set front matter.
+                    </p>
+                  </div>
+
+                  <div className="bg-editorial-sidebar/40 p-4 rounded-xl border border-editorial-border/60 space-y-1.5">
+                    <div className="w-6 h-6 rounded-full bg-stone-900 text-white dark:bg-amber-500 dark:text-stone-950 font-mono font-bold text-[11px] flex items-center justify-center shrink-0 shadow-xs">
+                      3
+                    </div>
+                    <h4 className="font-bold text-editorial-text uppercase tracking-wider text-[11px]">
+                      Draft with Word-like Tools
+                    </h4>
+                    <p className="text-[11px] text-editorial-muted leading-relaxed font-serif">
+                      Write on pure manuscript paper. Insert Word-like tables, custom callout boxes, character registers, and Zoho-style linked works.
+                    </p>
+                  </div>
+
+                  <div className="bg-editorial-sidebar/40 p-4 rounded-xl border border-editorial-border/60 space-y-1.5">
+                    <div className="w-6 h-6 rounded-full bg-stone-900 text-white dark:bg-amber-500 dark:text-stone-950 font-mono font-bold text-[11px] flex items-center justify-center shrink-0 shadow-xs">
+                      4
+                    </div>
+                    <h4 className="font-bold text-editorial-text uppercase tracking-wider text-[11px]">
+                      Design Cover & Export
+                    </h4>
+                    <p className="text-[11px] text-editorial-muted leading-relaxed font-serif">
+                      Style a trade cover in the <em>Cover Studio</em>, preview page-by-page, and export print-ready PDF, Word, Markdown, or Plain Text.
+                    </p>
+                  </div>
                 </div>
-                <h4 className="font-bold text-editorial-text uppercase tracking-wider text-[11px]">
-                  Design Cover & Export
-                </h4>
-                <p className="text-[11px] text-editorial-muted leading-relaxed font-serif">
-                  Style a 6"×9" trade cover in the <em>Cover Studio</em>, preview page-by-page, and export print-ready PDF, Word, Markdown, or Plain Text.
-                </p>
               </div>
-            </div>
+            )}
           </div>
 
-          {/* BOX 2: "Why Book Builder Shaastra" — Problems Before & Solutions Now */}
-          <div className="bg-editorial-sidebar/30 border border-editorial-border rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
-            <div className="text-center max-w-2xl mx-auto space-y-1">
-              <span className="text-[10px] font-mono uppercase tracking-[0.25em] font-bold text-editorial-accent">
-                Architectural Rationale
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-serif italic font-bold text-editorial-text">
-                Why Book Builder Shaastra?
-              </h2>
-              <p className="text-xs text-editorial-muted font-serif italic">
-                The critical problems that arose before this app, and the elegant solutions this platform delivers.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-              {/* Left Column: Problems that arose before this app */}
-              <div className="bg-white p-6 rounded-xl border border-red-200/80 shadow-2xs space-y-3">
-                <div className="flex items-center gap-2 text-red-700 font-sans font-bold text-xs uppercase tracking-wider">
-                  <XCircle size={16} />
-                  <span>The Problems That Arose Before This App</span>
+          {/* BOX 2: "Why Book Builder Shaastra" — Dropdown Accordion */}
+          <div className="bg-editorial-sidebar/30 border border-editorial-border rounded-2xl p-5 sm:p-6 shadow-xs transition-all">
+            <button
+              type="button"
+              onClick={() => setShowWhyBox(!showWhyBox)}
+              className="w-full flex items-center justify-between text-left cursor-pointer group select-none gap-3"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-editorial-sidebar flex items-center justify-center text-editorial-accent shrink-0 group-hover:scale-105 transition-transform">
+                  <Lightbulb size={19} />
                 </div>
-
-                <ul className="space-y-2.5 text-xs font-serif leading-relaxed text-editorial-text">
-                  <li className="flex items-start gap-2">
-                    <span className="text-red-500 font-bold shrink-0">•</span>
-                    <span><strong>Fragmented, Chaotic Workflows:</strong> Authors had to juggle separate word processors for typing, spreadsheet tools for data tables, and bloated DTP layout software just to assemble a book.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-red-500 font-bold shrink-0">•</span>
-                    <span><strong>Manual Table of Contents & Pagination:</strong> Changing one paragraph threw off page numbers across the entire document, requiring tedious manual retyping of indexes.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-red-500 font-bold shrink-0">•</span>
-                    <span><strong>Losing Work & Weak Backups:</strong> Complex desktop software often crashed, corrupting chapter files without automatic offline caching or cloud synchronization.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-red-500 font-bold shrink-0">•</span>
-                    <span><strong>AI-Slop & Erosion of Human Voice:</strong> Modern writing tools increasingly force intrusive chatbots and AI text-generators, muddying authentic authorial craft and scholarship.</span>
-                  </li>
-                </ul>
+                <div>
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-editorial-accent font-bold">
+                    Architectural Rationale
+                  </span>
+                  <h2 className="text-base sm:text-xl font-serif italic font-bold text-editorial-text group-hover:text-editorial-accent transition-colors leading-tight">
+                    Why Book Builder Shaastra? (Problems Before & Solutions Now)
+                  </h2>
+                </div>
               </div>
 
-              {/* Right Column: Solutions this app provides */}
-              <div className="bg-white p-6 rounded-xl border border-emerald-200/80 shadow-2xs space-y-3">
-                <div className="flex items-center gap-2 text-emerald-800 font-sans font-bold text-xs uppercase tracking-wider">
-                  <CheckCircle2 size={16} />
-                  <span>The Solution Book Builder Shaastra Provides</span>
-                </div>
-
-                <ul className="space-y-2.5 text-xs font-serif leading-relaxed text-editorial-text">
-                  <li className="flex items-start gap-2">
-                    <span className="text-emerald-600 font-bold shrink-0">✓</span>
-                    <span><strong>Unified Book-First Workspace:</strong> Hierarchical chapters, sections, Word-like tables, callout boxes, and cover design unified in one seamless, distraction-free environment.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-emerald-600 font-bold shrink-0">✓</span>
-                    <span><strong>Automatic Table of Contents & Paging:</strong> Structural changes dynamically update the directory, running headers, and export page numbers with zero manual effort.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-emerald-600 font-bold shrink-0">✓</span>
-                    <span><strong>Offline-First Resilience with Cloud Sync:</strong> Keystrokes save instantly to your device cache, syncing seamlessly to Google Cloud Firestore whenever connected.</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-emerald-600 font-bold shrink-0">✓</span>
-                    <span><strong>Pure Human Craftsmanship:</strong> 100% non-AI software architecture that respects your authorial voice, scholarship, and creative vision.</span>
-                  </li>
-                </ul>
+              <div className="flex items-center gap-1.5 text-xs text-editorial-muted font-mono bg-white px-3 py-1.5 rounded-lg border border-editorial-border shrink-0">
+                <span className="hidden sm:inline font-sans">{showWhyBox ? 'Collapse' : 'Click to Read'}</span>
+                {showWhyBox ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
               </div>
-            </div>
+            </button>
+
+            {showWhyBox && (
+              <div className="pt-4 mt-4 border-t border-editorial-divider space-y-4 animate-in fade-in duration-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+                  {/* Left Column: Problems that arose before this app */}
+                  <div className="bg-white p-5 sm:p-6 rounded-xl border border-red-200/80 shadow-2xs space-y-3">
+                    <div className="flex items-center gap-2 text-red-700 font-sans font-bold text-xs uppercase tracking-wider">
+                      <XCircle size={16} />
+                      <span>The Problems That Arose Before This App</span>
+                    </div>
+
+                    <ul className="space-y-2.5 text-xs font-serif leading-relaxed text-editorial-text">
+                      <li className="flex items-start gap-2">
+                        <span className="text-red-500 font-bold shrink-0">•</span>
+                        <span><strong>Fragmented, Chaotic Workflows:</strong> Authors had to juggle separate word processors for typing, spreadsheet tools for data tables, and bloated layout software just to assemble a book.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-red-500 font-bold shrink-0">•</span>
+                        <span><strong>Manual Table of Contents & Pagination:</strong> Changing one paragraph threw off page numbers across the entire document, requiring tedious manual retyping of indexes.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-red-500 font-bold shrink-0">•</span>
+                        <span><strong>Losing Work & Weak Backups:</strong> Complex desktop software often crashed, corrupting chapter files without automatic offline caching or cloud synchronization.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-red-500 font-bold shrink-0">•</span>
+                        <span><strong>AI-Slop & Erosion of Authentic Voice:</strong> Modern writing tools increasingly force intrusive chatbots and AI text-generators, muddying authentic authorial craft and scholarship.</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Right Column: Solutions this app provides */}
+                  <div className="bg-white p-5 sm:p-6 rounded-xl border border-emerald-200/80 shadow-2xs space-y-3">
+                    <div className="flex items-center gap-2 text-emerald-800 font-sans font-bold text-xs uppercase tracking-wider">
+                      <CheckCircle2 size={16} />
+                      <span>The Solution Book Builder Shaastra Provides</span>
+                    </div>
+
+                    <ul className="space-y-2.5 text-xs font-serif leading-relaxed text-editorial-text">
+                      <li className="flex items-start gap-2">
+                        <span className="text-emerald-600 font-bold shrink-0">✓</span>
+                        <span><strong>Unified Book-First Workspace:</strong> Hierarchical chapters, sections, Word-like tables, callout boxes, and cover design unified in one seamless, distraction-free environment.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-emerald-600 font-bold shrink-0">✓</span>
+                        <span><strong>Automatic Table of Contents & Paging:</strong> Structural changes dynamically update the directory, running headers, and export page numbers with zero manual effort.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-emerald-600 font-bold shrink-0">✓</span>
+                        <span><strong>Offline-First Resilience with Cloud Sync:</strong> Keystrokes save instantly to your device cache, syncing seamlessly to Google Cloud Firestore whenever connected.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-emerald-600 font-bold shrink-0">✓</span>
+                        <span><strong>Pure Authorial Craftsmanship:</strong> 100% non-AI software architecture that respects your authorial voice, scholarship, and creative vision.</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Quick Metrics Bar */}
@@ -514,7 +669,7 @@ export default function Dashboard({
 
                 <button
                   onClick={() => onSelectBook(continueBook.id)}
-                  className="w-full md:w-auto px-6 py-3 bg-editorial-text text-white hover:bg-black rounded-lg font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+                  className="w-full md:w-auto px-6 py-3 bg-stone-900 text-white hover:bg-black dark:bg-amber-600 dark:hover:bg-amber-500 dark:text-white rounded-lg font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer shrink-0"
                 >
                   <span>Continue Editing</span>
                   <ArrowRight size={14} />
@@ -523,62 +678,219 @@ export default function Dashboard({
             </div>
           )}
 
-          {/* Recent Books Grid */}
+          {/* Home Documents Section with Live Search & Grid / Line View Modes */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-serif italic font-bold text-editorial-text">
-                Recent Books & Documents
-              </h2>
-              <button
-                onClick={() => onSelectTab && onSelectTab('my-books')}
-                className="text-xs font-bold uppercase tracking-wider text-editorial-accent hover:underline flex items-center gap-1"
-              >
-                <span>View All ({nonArchivedBooks.length})</span>
-                <ChevronRight size={14} />
-              </button>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-serif italic font-bold text-editorial-text">
+                  Library Documents & Manuscripts
+                </h2>
+                <p className="text-xs text-editorial-muted">
+                  Search across your entire catalog, switch views, or open any document immediately.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onSelectTab && onSelectTab('my-books')}
+                  className="text-xs font-bold uppercase tracking-wider text-editorial-accent hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span>All Folders ({nonArchivedBooks.length})</span>
+                  <ChevronRight size={14} />
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {nonArchivedBooks.slice(0, 6).map((book) => {
-                const words = book.chapters.reduce((sum, c) => sum + (c.wordCount || 0), 0);
-                return (
-                  <div
-                    key={book.id}
-                    onClick={() => onSelectBook(book.id)}
-                    className="bg-white border border-editorial-border rounded-xl p-5 shadow-xs hover:border-editorial-accent hover:shadow-md transition-all cursor-pointer flex flex-col justify-between h-56 group"
+            {/* Home Search Bar & Grid/Line View Controls */}
+            <div className="bg-white border border-editorial-border p-3 rounded-xl flex items-center justify-between gap-3 shadow-2xs">
+              <div className="relative flex-1">
+                <Search size={14} className="absolute left-3 top-2.5 text-editorial-muted" />
+                <input
+                  type="text"
+                  placeholder="Search manuscripts by title, topic, author, or keywords..."
+                  value={homeSearchQuery}
+                  onChange={(e) => setHomeSearchQuery(e.target.value)}
+                  className="w-full bg-editorial-sidebar/20 border border-editorial-border rounded-lg pl-9 pr-8 py-2 text-xs outline-none focus:border-editorial-accent text-editorial-text"
+                />
+                {homeSearchQuery && (
+                  <button
+                    onClick={() => setHomeSearchQuery('')}
+                    className="absolute right-2.5 top-2.5 text-editorial-muted hover:text-editorial-text cursor-pointer"
+                    title="Clear search"
                   >
-                    <div>
-                      <div className="flex items-center justify-between text-[10px] font-mono text-editorial-muted mb-2">
-                        <span className="uppercase font-bold tracking-wider bg-editorial-sidebar px-2 py-0.5 rounded">
-                          {book.type}
-                        </span>
-                        <span>{formatDate(book.updatedAt)}</span>
-                      </div>
-                      <h3 className="font-serif italic font-bold text-lg text-editorial-text group-hover:text-editorial-accent transition-colors line-clamp-2">
-                        {book.title}
-                      </h3>
-                      {book.subtitle && (
-                        <p className="text-xs text-editorial-muted italic line-clamp-1 mt-0.5">
-                          {book.subtitle}
-                        </p>
-                      )}
-                      <p className="text-xs text-editorial-muted line-clamp-2 mt-2 font-serif">
-                        {book.description || 'No synopsis provided.'}
-                      </p>
-                    </div>
+                    <XCircle size={14} />
+                  </button>
+                )}
+              </div>
 
-                    <div className="pt-3 border-t border-editorial-divider flex items-center justify-between text-xs">
-                      <span className="font-mono text-[10px] text-editorial-muted">
-                        {book.chapters.length} ch. • {words}w
-                      </span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-editorial-accent group-hover:underline flex items-center gap-1">
-                        Open &rarr;
-                      </span>
-                    </div>
+              {/* Grid / Line View Mode Toggle */}
+              <div className="flex items-center border border-editorial-border rounded-lg overflow-hidden shrink-0 bg-editorial-sidebar/30">
+                <button
+                  type="button"
+                  onClick={() => setHomeViewMode('grid')}
+                  className={`p-2 transition-colors cursor-pointer ${
+                    homeViewMode === 'grid'
+                      ? 'bg-editorial-accent text-white font-bold shadow-2xs'
+                      : 'text-editorial-muted hover:text-editorial-text'
+                  }`}
+                  title="Grid View"
+                >
+                  <LayoutGrid size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHomeViewMode('list')}
+                  className={`p-2 transition-colors cursor-pointer ${
+                    homeViewMode === 'list'
+                      ? 'bg-editorial-accent text-white font-bold shadow-2xs'
+                      : 'text-editorial-muted hover:text-editorial-text'
+                  }`}
+                  title="Line View (List View)"
+                >
+                  <List size={15} />
+                </button>
+              </div>
+            </div>
+
+            {/* Documents Listing (Grid vs Line view) */}
+            {(() => {
+              const homeFilteredBooks = nonArchivedBooks.filter(b => {
+                if (!homeSearchQuery.trim()) return true;
+                const q = homeSearchQuery.toLowerCase();
+                return (
+                  b.title.toLowerCase().includes(q) ||
+                  (b.subtitle && b.subtitle.toLowerCase().includes(q)) ||
+                  (b.description && b.description.toLowerCase().includes(q)) ||
+                  (b.authorName && b.authorName.toLowerCase().includes(q)) ||
+                  (b.category && b.category.toLowerCase().includes(q)) ||
+                  (b.subCategory && b.subCategory.toLowerCase().includes(q))
+                );
+              });
+
+              if (homeFilteredBooks.length === 0) {
+                return (
+                  <div className="bg-white border border-dashed border-editorial-border rounded-xl p-8 text-center space-y-2">
+                    <p className="font-serif italic text-editorial-text text-sm">
+                      No documents match "{homeSearchQuery}"
+                    </p>
+                    <button
+                      onClick={() => setHomeSearchQuery('')}
+                      className="text-xs text-editorial-accent hover:underline font-bold cursor-pointer"
+                    >
+                      Clear search filter
+                    </button>
                   </div>
                 );
-              })}
-            </div>
+              }
+
+              if (homeViewMode === 'list') {
+                return (
+                  <div className="bg-white border border-editorial-border rounded-xl overflow-hidden shadow-xs divide-y divide-editorial-divider">
+                    {homeFilteredBooks.map(book => {
+                      const words = book.chapters.reduce((sum, c) => sum + (c.wordCount || 0), 0);
+                      return (
+                        <div
+                          key={book.id}
+                          className="p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-neutral-50 transition-colors"
+                        >
+                          <div className="flex-1 overflow-hidden cursor-pointer" onClick={() => onSelectBook(book.id)}>
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                              <span className="text-[9px] font-mono font-bold uppercase bg-editorial-sidebar px-2 py-0.5 rounded text-editorial-muted">
+                                {book.type}
+                              </span>
+                              {book.category && (
+                                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-neutral-100 font-sans border border-editorial-border/60 text-editorial-text font-medium">
+                                  <FolderOpen size={10} className="text-editorial-accent" />
+                                  <span>{book.category}</span>
+                                </span>
+                              )}
+                              <span className="text-[10px] font-mono text-emerald-800 uppercase font-bold">
+                                {book.status}
+                              </span>
+                              <span className="text-[10px] font-mono text-editorial-muted">
+                                Edited {formatDate(book.updatedAt)}
+                              </span>
+                            </div>
+                            <h3 className="font-serif italic font-bold text-base text-editorial-text hover:text-editorial-accent truncate">
+                              {book.title}
+                            </h3>
+                            {book.subtitle && (
+                              <p className="text-xs text-editorial-muted italic truncate">
+                                {book.subtitle}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="text-xs font-mono text-editorial-muted">
+                              {book.chapters.length} ch. • {words}w
+                            </span>
+                            <button
+                              onClick={() => onSelectBook(book.id)}
+                              className="px-3 py-1.5 bg-editorial-text text-white hover:bg-black rounded text-xs font-bold uppercase tracking-wider cursor-pointer shadow-2xs"
+                            >
+                              Open
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              }
+
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {homeFilteredBooks.map((book) => {
+                    const words = book.chapters.reduce((sum, c) => sum + (c.wordCount || 0), 0);
+                    return (
+                      <div
+                        key={book.id}
+                        onClick={() => onSelectBook(book.id)}
+                        className="bg-white border border-editorial-border rounded-xl p-5 shadow-xs hover:border-editorial-accent hover:shadow-md transition-all cursor-pointer flex flex-col justify-between h-56 group"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between text-[10px] font-mono text-editorial-muted mb-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="uppercase font-bold tracking-wider bg-editorial-sidebar px-2 py-0.5 rounded">
+                                {book.type}
+                              </span>
+                              {book.category && (
+                                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-neutral-100 font-sans border border-editorial-border/60 text-editorial-text font-medium truncate max-w-[100px]">
+                                  <FolderOpen size={10} className="text-editorial-accent" />
+                                  <span>{book.category}</span>
+                                </span>
+                              )}
+                            </div>
+                            <span>{formatDate(book.updatedAt)}</span>
+                          </div>
+                          <h3 className="font-serif italic font-bold text-lg text-editorial-text group-hover:text-editorial-accent transition-colors line-clamp-2">
+                            {book.title}
+                          </h3>
+                          {book.subtitle && (
+                            <p className="text-xs text-editorial-muted italic line-clamp-1 mt-0.5">
+                              {book.subtitle}
+                            </p>
+                          )}
+                          <p className="text-xs text-editorial-muted line-clamp-2 mt-2 font-serif">
+                            {book.description || 'No synopsis provided.'}
+                          </p>
+                        </div>
+
+                        <div className="pt-3 border-t border-editorial-divider flex items-center justify-between text-xs">
+                          <span className="font-mono text-[10px] text-editorial-muted">
+                            {book.chapters.length} ch. • {words}w
+                          </span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-editorial-accent group-hover:underline flex items-center gap-1">
+                            Open &rarr;
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -607,20 +919,152 @@ export default function Dashboard({
                 {activeTab === 'archived' ? 'Archived Manuscripts' :
                  activeTab === 'drafts' ? 'Manuscript Drafts' :
                  activeTab === 'published' ? 'Published / Exported Works' :
-                 'My Books & Publications'}
+                 'My Books & Manuscripts'}
               </h1>
               <p className="text-xs text-editorial-muted mt-1">
-                Manage, duplicate, export, or archive your library of works.
+                Manage, duplicate, export, or organize your library of works.
               </p>
             </div>
 
-            <button
-              onClick={onOpenNewBookWizard}
-              className="bg-editorial-text text-white hover:bg-black px-4 py-2.5 rounded-md font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-xs transition-all cursor-pointer"
-            >
-              <Plus size={15} />
-              <span>+ New Book</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowCategoryModal(true)}
+                className="bg-white border border-editorial-border hover:bg-editorial-sidebar text-editorial-text px-3 py-2 rounded-md font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                title="Create and manage document folder categories"
+              >
+                <FolderPlus size={14} className="text-editorial-accent" />
+                <span className="hidden sm:inline">Manage</span> Folders
+              </button>
+
+              <button
+                onClick={onOpenNewBookWizard}
+                className="bg-editorial-accent hover:bg-editorial-accent/90 text-white dark:bg-amber-600 dark:hover:bg-amber-500 dark:text-white px-4 py-2.5 rounded-md font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-xs transition-all cursor-pointer"
+              >
+                <Plus size={15} />
+                <span>+ New Book</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Folder & Category Strip */}
+          <div className="bg-white border border-editorial-border p-3 sm:p-4 rounded-xl space-y-2.5 shadow-xs">
+            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-editorial-muted">
+              <div className="flex items-center gap-2">
+                <FolderOpen size={14} className="text-editorial-accent" />
+                <span>Document Categories & Folders</span>
+              </div>
+              <button
+                onClick={() => setShowCategoryModal(true)}
+                className="text-[11px] text-editorial-accent hover:underline flex items-center gap-1 normal-case font-medium cursor-pointer"
+              >
+                <Edit3 size={11} />
+                Edit Categories
+              </button>
+            </div>
+
+            {/* Main Category Pills */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                onClick={() => {
+                  setSelectedFolderId('all');
+                  setSelectedSubFolderId('all');
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 transition-all cursor-pointer ${
+                  selectedFolderId === 'all'
+                    ? 'bg-editorial-accent text-white shadow-xs font-bold'
+                    : 'bg-editorial-sidebar/60 text-editorial-text hover:bg-editorial-sidebar border border-editorial-border'
+                }`}
+              >
+                <span>All Documents</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                  selectedFolderId === 'all' ? 'bg-white/25 text-white' : 'bg-black/10 text-editorial-muted'
+                }`}>
+                  {nonArchivedBooks.length}
+                </span>
+              </button>
+
+              {documentCategories.map((cat) => {
+                const count = nonArchivedBooks.filter(
+                  b => b.categoryId === cat.id || b.category === cat.name
+                ).length;
+                const isSelected = selectedFolderId === cat.id;
+
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedFolderId('all');
+                        setSelectedSubFolderId('all');
+                      } else {
+                        setSelectedFolderId(cat.id);
+                        setSelectedSubFolderId('all');
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-2 transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-editorial-text text-white shadow-xs font-bold'
+                        : 'bg-editorial-sidebar/40 text-editorial-text hover:bg-editorial-sidebar border border-editorial-border'
+                    }`}
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: cat.color || '#C05800' }}
+                    />
+                    <span>{cat.name}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                      isSelected ? 'bg-white/20 text-white' : 'bg-black/10 text-editorial-muted'
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Sub-category Pills (when a parent folder is selected) */}
+            {selectedFolderId !== 'all' && (() => {
+              const currentCat = documentCategories.find(c => c.id === selectedFolderId);
+              if (!currentCat || currentCat.subCategories.length === 0) return null;
+              return (
+                <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-editorial-divider">
+                  <span className="text-[10px] uppercase font-mono text-editorial-muted mr-1 font-bold">
+                    Sub-folder:
+                  </span>
+                  <button
+                    onClick={() => setSelectedSubFolderId('all')}
+                    className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all cursor-pointer ${
+                      selectedSubFolderId === 'all'
+                        ? 'bg-editorial-accent text-white font-bold'
+                        : 'bg-editorial-sidebar/30 text-editorial-muted hover:text-editorial-text border border-editorial-border'
+                    }`}
+                  >
+                    All in {currentCat.name}
+                  </button>
+                  {currentCat.subCategories.map((sub) => {
+                    const subCount = nonArchivedBooks.filter(
+                      b => (b.categoryId === currentCat.id || b.category === currentCat.name) &&
+                           (b.subCategoryId === sub.id || b.subCategory === sub.name)
+                    ).length;
+                    const isSubSelected = selectedSubFolderId === sub.id;
+                    return (
+                      <button
+                        key={sub.id}
+                        onClick={() => setSelectedSubFolderId(isSubSelected ? 'all' : sub.id)}
+                        className={`px-2.5 py-1 rounded text-[11px] font-medium transition-all cursor-pointer ${
+                          isSubSelected
+                            ? 'bg-editorial-accent text-white font-bold'
+                            : 'bg-editorial-sidebar/30 text-editorial-text hover:bg-editorial-sidebar border border-editorial-border'
+                        }`}
+                      >
+                        <span>{sub.name}</span>
+                        <span className="ml-1.5 text-[9px] opacity-75">({subCount})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Search, Filter & Layout Controls */}
@@ -693,7 +1137,7 @@ export default function Dashboard({
               </p>
               <button
                 onClick={onOpenNewBookWizard}
-                className="px-5 py-2.5 bg-editorial-text text-white rounded font-bold text-xs uppercase tracking-wider hover:bg-black"
+                className="px-5 py-2.5 bg-editorial-accent hover:bg-editorial-accent/90 text-white dark:bg-amber-600 dark:hover:bg-amber-500 dark:text-white rounded font-bold text-xs uppercase tracking-wider shadow-xs cursor-pointer"
               >
                 + Create Your First Book
               </button>
@@ -709,10 +1153,19 @@ export default function Dashboard({
                   >
                     <div>
                       <div className="flex items-center justify-between text-[10px] font-mono text-editorial-muted mb-2">
-                        <span className="uppercase font-bold tracking-wider bg-editorial-sidebar px-2 py-0.5 rounded">
-                          {book.type}
-                        </span>
-                        <span className="capitalize font-bold text-editorial-accent">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="uppercase font-bold tracking-wider bg-editorial-sidebar px-2 py-0.5 rounded">
+                            {book.type}
+                          </span>
+                          {book.category && (
+                            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-neutral-100 font-sans border border-editorial-border/60 text-editorial-text font-medium">
+                              <FolderOpen size={10} className="text-editorial-accent" />
+                              <span className="truncate max-w-[100px]">{book.category}</span>
+                              {book.subCategory && <span className="text-editorial-muted text-[9px]">/ {book.subCategory}</span>}
+                            </span>
+                          )}
+                        </div>
+                        <span className="capitalize font-bold text-editorial-accent shrink-0">
                           {book.status}
                         </span>
                       </div>
@@ -740,6 +1193,28 @@ export default function Dashboard({
                       </div>
 
                       <div className="flex items-center gap-1">
+                        {/* Quick Folder Assigner */}
+                        <div className="relative" title="Assign to folder/category">
+                          <select
+                            value={book.categoryId || ''}
+                            onChange={(e) => handleAssignCategory(book, e.target.value)}
+                            className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
+                            title="Assign to folder category"
+                          >
+                            <option value="none">No Folder</option>
+                            {documentCategories.map(c => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            className="p-1.5 text-editorial-muted hover:text-editorial-accent rounded transition-colors"
+                            title={`Folder: ${book.category || 'Uncategorized'}`}
+                          >
+                            <FolderPlus size={13} />
+                          </button>
+                        </div>
+
                         <button
                           onClick={() => setSharingBook(book)}
                           className="p-1.5 text-editorial-muted hover:text-editorial-accent rounded transition-colors"
@@ -797,10 +1272,17 @@ export default function Dashboard({
                     className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-neutral-50 transition-colors"
                   >
                     <div className="flex-1 overflow-hidden" onClick={() => onSelectBook(book.id)}>
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-[9px] font-mono font-bold uppercase bg-editorial-sidebar px-2 py-0.5 rounded text-editorial-muted">
                           {book.type}
                         </span>
+                        {book.category && (
+                          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-neutral-100 font-sans border border-editorial-border/60 text-editorial-text font-medium">
+                            <FolderOpen size={10} className="text-editorial-accent" />
+                            <span>{book.category}</span>
+                            {book.subCategory && <span className="text-editorial-muted text-[9px]">/ {book.subCategory}</span>}
+                          </span>
+                        )}
                         <span className="text-[10px] font-mono text-emerald-800 uppercase font-bold">
                           {book.status}
                         </span>
@@ -824,6 +1306,28 @@ export default function Dashboard({
                       </span>
 
                       <div className="flex items-center gap-1">
+                        {/* Quick Folder Assigner */}
+                        <div className="relative" title="Assign to folder/category">
+                          <select
+                            value={book.categoryId || ''}
+                            onChange={(e) => handleAssignCategory(book, e.target.value)}
+                            className="opacity-0 absolute inset-0 w-full h-full cursor-pointer z-10"
+                            title="Assign to folder category"
+                          >
+                            <option value="none">No Folder</option>
+                            {documentCategories.map(c => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            className="p-1.5 text-editorial-muted hover:text-editorial-accent rounded transition-colors"
+                            title={`Folder: ${book.category || 'Uncategorized'}`}
+                          >
+                            <FolderPlus size={14} />
+                          </button>
+                        </div>
+
                         <button
                           onClick={() => setSharingBook(book)}
                           className="p-1.5 text-editorial-muted hover:text-editorial-accent rounded transition-colors"
@@ -890,7 +1394,7 @@ export default function Dashboard({
           <FacilityIntro
             title="Curated Blueprints & Templates Facility"
             facilityKey="templates"
-            description="Pre-structured publishing scaffolding built according to authentic genre and pedagogical standards. Every chapter and guidance beat remains 100% editable."
+            description="Pre-structured document scaffolding built according to authentic genre and pedagogical standards. Every chapter and guidance beat remains 100% editable."
             steps={[
               "Browse blueprints by genre pill (Fiction, Children's, Academic, Science, Policy).",
               "Review the estimated word count and structured section roadmap.",
@@ -909,7 +1413,7 @@ export default function Dashboard({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-editorial-divider">
-            {categories.map((cat) => (
+            {templateCategoriesList.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setTemplateCategory(cat)}
@@ -925,51 +1429,85 @@ export default function Dashboard({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTemplates.map((template) => (
-              <div
-                key={template.id}
-                className="bg-white border border-editorial-border rounded-xl p-6 shadow-xs flex flex-col justify-between hover:border-editorial-accent transition-all group"
-              >
-                <div>
-                  <div className="flex items-center justify-between text-[10px] font-mono text-editorial-muted mb-3">
-                    <span className="uppercase font-bold tracking-wider bg-editorial-sidebar px-2 py-0.5 rounded text-editorial-accent">
-                      {template.category}
-                    </span>
-                    <span className="font-bold">{template.complexity}</span>
+            {filteredTemplates.map((template) => {
+              const demoDoc = books.find(b => b.blueprintId === template.id || b.id === `demo-${template.id}`) || getDemoBookForBlueprint(template.id);
+
+              return (
+                <div
+                  key={template.id}
+                  className="bg-white dark:bg-stone-900 border border-editorial-border dark:border-stone-800 rounded-xl p-5 sm:p-6 shadow-xs flex flex-col justify-between hover:border-editorial-accent transition-all group"
+                >
+                  <div>
+                    <div className="flex items-center justify-between text-[10px] font-mono text-editorial-muted mb-3 flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="uppercase font-bold tracking-wider bg-editorial-sidebar dark:bg-stone-800 px-2 py-0.5 rounded text-editorial-accent">
+                          {template.category}
+                        </span>
+                        <span className="font-bold text-editorial-muted dark:text-stone-400">{template.complexity}</span>
+                      </div>
+                      {demoDoc && (
+                        <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                          Demo Available
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="font-serif italic font-bold text-lg text-editorial-text dark:text-stone-100 group-hover:text-editorial-accent transition-colors">
+                      {template.name}
+                    </h3>
+                    <p className="text-xs text-editorial-muted dark:text-stone-400 mt-2 leading-relaxed">
+                      {template.description}
+                    </p>
+
+                    <div className="mt-4 pt-3 border-t border-editorial-divider dark:border-stone-800 space-y-1">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-editorial-muted dark:text-stone-400 font-bold block">
+                        Includes {template.structure.length} Sections:
+                      </span>
+                      <ul className="text-xs text-editorial-text dark:text-stone-300 space-y-0.5 list-disc list-inside font-serif italic line-clamp-3">
+                        {template.structure.slice(0, 3).map((st, i) => (
+                          <li key={i}>{st}</li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
 
-                  <h3 className="font-serif italic font-bold text-lg text-editorial-text group-hover:text-editorial-accent transition-colors">
-                    {template.name}
-                  </h3>
-                  <p className="text-xs text-editorial-muted mt-2 leading-relaxed">
-                    {template.description}
-                  </p>
+                  <div className="pt-4 mt-4 border-t border-editorial-divider dark:border-stone-800 space-y-3">
+                    <div className="text-[10px] font-mono text-editorial-muted dark:text-stone-400">
+                      Target: {template.estimatedWords}
+                    </div>
 
-                  <div className="mt-4 pt-3 border-t border-editorial-divider space-y-1">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-editorial-muted font-bold block">
-                      Includes {template.structure.length} Sections:
-                    </span>
-                    <ul className="text-xs text-editorial-text space-y-0.5 list-disc list-inside font-serif italic line-clamp-3">
-                      {template.structure.slice(0, 3).map((st, i) => (
-                        <li key={i}>{st}</li>
-                      ))}
-                    </ul>
+                    <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                      {demoDoc && (
+                        <button
+                          onClick={() => {
+                            const existing = books.find(b => b.id === demoDoc.id);
+                            if (existing) {
+                              onSelectBook(existing.id);
+                            } else if (onImportBook) {
+                              onImportBook(demoDoc);
+                            } else {
+                              onSelectBook(demoDoc.id);
+                            }
+                          }}
+                          className="flex-1 py-2 px-3 bg-stone-100 hover:bg-stone-200 dark:bg-stone-800 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-100 border border-stone-300 dark:border-stone-700 rounded text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                          title="Open full interactive demo document for this blueprint"
+                        >
+                          <Eye size={13} className="text-editorial-accent" />
+                          <span>Explore Demo</span>
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => onCreateBook(template.id)}
+                        className="flex-1 py-2 px-3 bg-editorial-accent hover:bg-editorial-accent/90 text-white rounded text-xs font-bold uppercase tracking-wider shadow-xs transition-colors cursor-pointer text-center"
+                      >
+                        Use Blueprint
+                      </button>
+                    </div>
                   </div>
                 </div>
-
-                <div className="pt-4 mt-4 border-t border-editorial-divider flex items-center justify-between">
-                  <span className="text-[10px] font-mono text-editorial-muted">
-                    {template.estimatedWords}
-                  </span>
-                  <button
-                    onClick={() => onCreateBook(template.id)}
-                    className="px-3.5 py-1.5 bg-editorial-accent text-white hover:bg-editorial-text rounded text-xs font-bold uppercase tracking-wider shadow-xs transition-colors cursor-pointer"
-                  >
-                    Use Blueprint
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -1143,6 +1681,50 @@ export default function Dashboard({
           </div>
 
           <div className="bg-white border border-editorial-border p-6 rounded-xl space-y-4 shadow-xs">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-base font-serif italic font-bold text-editorial-text flex items-center gap-2">
+                  <Keyboard size={18} className="text-editorial-accent" />
+                  Non-Conflicting Keyboard Shortcuts
+                </h3>
+                <p className="text-xs text-editorial-muted mt-1 leading-relaxed">
+                  Engineered with universal <kbd className="px-1.5 py-0.5 rounded bg-editorial-sidebar border border-editorial-border font-mono text-[11px] font-bold">Alt + [Key]</kbd> combinations that never collide with browser tabs, browser history, or system window shortcuts.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowShortcutsModal(true)}
+                className="px-4 py-2 bg-editorial-accent hover:bg-editorial-accent/90 text-white rounded font-bold text-xs uppercase tracking-wider shadow-xs cursor-pointer shrink-0"
+              >
+                View Full Cheatsheet
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-2">
+              {[
+                { key: 'Alt + S', desc: 'Save document immediately' },
+                { key: 'Alt + A', desc: 'Toggle AutoSave (Offline friendly)' },
+                { key: 'Alt + F', desc: 'Find & Replace word matching' },
+                { key: 'Alt + 1 / 2 / 3', desc: 'Apply Heading 1 / 2 / 3' },
+                { key: 'Alt + 0', desc: 'Normal body paragraph style' },
+                { key: 'Alt + B / I / U', desc: 'Bold, Italic, Underline' },
+                { key: 'Alt + M', desc: 'Yellow text highlight' },
+                { key: 'Alt + L / C / R / J', desc: 'Left, Center, Right, Balanced Justify' },
+                { key: 'Alt + K', desc: 'Open Keyboard Shortcuts modal' }
+              ].map((sc, i) => (
+                <div key={i} className="flex items-center justify-between p-2.5 rounded-lg bg-editorial-sidebar/30 border border-editorial-border text-xs">
+                  <span className="text-editorial-text font-serif">{sc.desc}</span>
+                  <kbd className="px-2 py-0.5 rounded bg-white border border-editorial-border text-[11px] font-mono font-bold text-editorial-accent shrink-0">
+                    {sc.key}
+                  </kbd>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Visual Key & Legend: Pictorial Guide to Editor Buttons, Formatting Tools & Boxes */}
+          <EditorKeyLegend />
+
+          <div className="bg-white border border-editorial-border p-6 rounded-xl space-y-4 shadow-xs">
             <h3 className="text-base font-serif italic font-bold text-editorial-text">Visual Appearance</h3>
             <div className="flex items-center justify-between">
               <div>
@@ -1257,6 +1839,24 @@ export default function Dashboard({
           }}
           currentUserName={penName}
           currentUserEmail={currentUser?.email || ''}
+        />
+      )}
+
+      {/* Category & Folder Manager Modal */}
+      {showCategoryModal && (
+        <CategoryManagerModal
+          isOpen={showCategoryModal}
+          onClose={() => setShowCategoryModal(false)}
+          categories={documentCategories}
+          onSaveCategories={handleSaveCategories}
+        />
+      )}
+
+      {/* Non-Conflicting Keyboard Shortcuts Modal */}
+      {showShortcutsModal && (
+        <KeyboardShortcutsModal
+          isOpen={showShortcutsModal}
+          onClose={() => setShowShortcutsModal(false)}
         />
       )}
     </div>

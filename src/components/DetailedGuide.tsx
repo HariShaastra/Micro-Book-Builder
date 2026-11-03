@@ -32,7 +32,7 @@ export default function DetailedGuide({ onBack }: DetailedGuideProps) {
 
   const topics = [
     { id: 'intro', title: 'What is Book Builder Shaastra?', icon: Compass },
-    { id: 'workflow', title: '4-Step Publishing Workflow', icon: Layers },
+    { id: 'workflow', title: '4-Step Book Creation Workflow', icon: Layers },
     { id: 'word-tools', title: 'Word-like Tools: Tables & Boxes', icon: Table },
     { id: 'citing-linking', title: 'Citing & Linking Works (Zoho Style)', icon: Quote },
     { id: 'outline-structure', title: 'Outline & Hierarchical Structure', icon: BookOpen },
@@ -42,7 +42,7 @@ export default function DetailedGuide({ onBack }: DetailedGuideProps) {
   ];
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto py-2 sm:py-6 select-none animate-in fade-in duration-200">
+    <div className="space-y-6 max-w-5xl mx-auto py-2 sm:py-6 select-text w-full overflow-x-hidden animate-in fade-in duration-200">
       {/* Top Header with Prominent Back Button */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-editorial-border shadow-xs">
         <div className="flex items-center gap-3">
@@ -115,7 +115,7 @@ export default function DetailedGuide({ onBack }: DetailedGuideProps) {
                 What is Book Builder Shaastra?
               </h2>
               <p>
-                <strong>Book Builder Shaastra</strong> is a specialized writing, document architecture, and publishing studio designed to help authors, educators, researchers, and students turn raw ideas into structured, beautifully formatted books and documents.
+                <strong>Book Builder Shaastra</strong> is a specialized writing, document architecture, and book creation studio designed to help authors, educators, researchers, and students turn raw ideas into structured, beautifully formatted books and documents.
               </p>
               <p>
                 Unlike generic word processors that treat manuscripts as infinite scrolling ribbons of text, Book Builder Shaastra enforces a true book hierarchy:
@@ -129,7 +129,7 @@ export default function DetailedGuide({ onBack }: DetailedGuideProps) {
                 <li>About the Author epilogue and back matter</li>
               </ul>
               <div className="bg-editorial-sidebar/40 p-4 rounded-lg border border-editorial-divider text-xs italic font-serif mt-4">
-                <strong>Our Non-AI Pledge:</strong> The entire application operates through software logic, structured templates, and human editorial controls. There are no AI chatbots, text-generating hallucinations, or algorithms usurping your authorial voice.
+                <strong>Our Non-AI Pledge:</strong> The entire application operates through software logic, structured templates, and direct authorial controls. There are no AI chatbots, text-generating hallucinations, or algorithms usurping your authorial voice.
               </div>
             </div>
           )}
@@ -140,7 +140,7 @@ export default function DetailedGuide({ onBack }: DetailedGuideProps) {
                 Chapter 2 • Methodology
               </span>
               <h2 className="text-2xl sm:text-3xl font-bold italic text-editorial-text">
-                The 4-Step Publishing Workflow
+                The 4-Step Book Creation Workflow
               </h2>
               <div className="space-y-4 pt-2">
                 <div className="border-l-2 border-editorial-accent pl-4 space-y-1">
@@ -191,7 +191,7 @@ export default function DetailedGuide({ onBack }: DetailedGuideProps) {
                 Word-like Facilities: Tables, Boxes & Formatting
               </h2>
               <p>
-                The writing studio is equipped with the familiar layout and document facilities found in desktop publishing tools:
+                The writing studio is equipped with the familiar layout and document facilities found in desktop editorial tools:
               </p>
               
               <div className="space-y-3 pt-2">
@@ -299,7 +299,7 @@ export default function DetailedGuide({ onBack }: DetailedGuideProps) {
           {activeTopic === 'exports' && (
             <div className="space-y-4">
               <span className="text-[10px] font-mono uppercase font-bold tracking-widest text-editorial-accent block">
-                Chapter 7 • Publishing
+                Chapter 7 • Archival & Export
               </span>
               <h2 className="text-2xl sm:text-3xl font-bold italic text-editorial-text">
                 Exporting PDF, Word, Markdown & TXT

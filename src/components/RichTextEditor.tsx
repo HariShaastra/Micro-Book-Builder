@@ -4,13 +4,19 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, Extension, Mark, Node, mergeAttributes } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
 import { 
   Bold, 
   Italic, 
+  Underline as UnderlineIcon,
+  Highlighter,
   Strikethrough,
   Code,
   List, 
@@ -30,7 +36,16 @@ import {
   Trash2,
   RemoveFormatting,
   Asterisk,
-  Grid
+  Grid,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify,
+  Indent,
+  Outdent,
+  Search,
+  Type,
+  Check
 } from 'lucide-react';
 import { cn } from '../lib/utils.ts';
 import { PageBorderStyle } from '../types.ts';
@@ -41,8 +56,10 @@ interface RichTextEditorProps {
   placeholder?: string;
   isFullscreen?: boolean;
   onOpenCiteLinkModal?: () => void;
+  onOpenFindReplace?: () => void;
   onImagePasted?: (image: { name: string; url: string; size: number }) => void;
   borderStyle?: PageBorderStyle;
+  pageSize?: string;
 }
 
 const MenuButton = ({ 
@@ -66,13 +83,145 @@ const MenuButton = ({
     className={cn(
       "p-1.5 sm:p-2 rounded-md transition-all cursor-pointer text-xs flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shrink-0",
       isActive 
-        ? "bg-editorial-accent text-white shadow-xs font-bold" 
-        : "text-editorial-muted hover:bg-white/80 hover:text-editorial-text"
+        ? "bg-editorial-accent text-white shadow-xs font-bold dark:bg-amber-600 dark:text-white" 
+        : "text-editorial-muted dark:text-stone-300 hover:bg-white/80 dark:hover:bg-stone-800 hover:text-editorial-text dark:hover:text-white"
     )}
   >
     {children}
   </button>
 );
+
+const CustomUnderline = Mark.create({
+  name: 'underline',
+  parseHTML() {
+    return [
+      { tag: 'u' },
+      { style: 'text-decoration=underline' },
+    ];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['u', mergeAttributes(HTMLAttributes), 0];
+  },
+  addCommands() {
+    return {
+      toggleUnderline: () => ({ commands }: any) => {
+        return commands.toggleMark(this.name);
+      },
+      setUnderline: () => ({ commands }: any) => {
+        return commands.setMark(this.name);
+      },
+      unsetUnderline: () => ({ commands }: any) => {
+        return commands.unsetMark(this.name);
+      },
+    } as any;
+  },
+});
+
+const CustomHighlight = Mark.create({
+  name: 'highlight',
+  parseHTML() {
+    return [
+      { tag: 'mark' },
+    ];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['mark', mergeAttributes(HTMLAttributes), 0];
+  },
+  addCommands() {
+    return {
+      toggleHighlight: () => ({ commands }: any) => {
+        return commands.toggleMark(this.name);
+      },
+      setHighlight: () => ({ commands }: any) => {
+        return commands.setMark(this.name);
+      },
+      unsetHighlight: () => ({ commands }: any) => {
+        return commands.unsetMark(this.name);
+      },
+    } as any;
+  },
+});
+
+const CalloutBox = Node.create({
+  name: 'calloutBox',
+  group: 'block',
+  content: 'block+',
+  defining: true,
+  isolating: true,
+  addAttributes() {
+    return {
+      type: {
+        default: 'info',
+        parseHTML: element => {
+          const classList = element.getAttribute('class') || '';
+          if (classList.includes('callout-warning')) return 'warning';
+          if (classList.includes('callout-tip')) return 'tip';
+          if (classList.includes('callout-quote')) return 'quote';
+          if (classList.includes('callout-note')) return 'note';
+          if (classList.includes('callout-takeaway')) return 'takeaway';
+          return element.getAttribute('data-type') || 'info';
+        },
+        renderHTML: attributes => ({
+          'data-type': attributes.type,
+          class: `callout-box callout-${attributes.type}`,
+        }),
+      },
+    };
+  },
+  parseHTML() {
+    return [
+      { tag: 'div.callout-box' },
+      { tag: 'div[data-type]' },
+      { tag: 'blockquote.callout-box' },
+    ];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['div', mergeAttributes(HTMLAttributes), 0];
+  },
+});
+
+const CustomTextAlign = Extension.create({
+  name: 'textAlign',
+  addOptions() {
+    return {
+      types: ['heading', 'paragraph'],
+      alignments: ['left', 'center', 'right', 'justify'],
+      defaultAlignment: 'left',
+    };
+  },
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          textAlign: {
+            default: this.options.defaultAlignment,
+            parseHTML: element => element.style.textAlign || this.options.defaultAlignment,
+            renderHTML: attributes => {
+              if (!attributes.textAlign || attributes.textAlign === this.options.defaultAlignment) {
+                return {};
+              }
+              return { style: `text-align: ${attributes.textAlign}` };
+            },
+          },
+        },
+      },
+    ];
+  },
+  addCommands() {
+    return {
+      setTextAlign: (alignment: string) => ({ commands }: any) => {
+        if (!this.options.alignments.includes(alignment)) {
+          return false;
+        }
+        return this.options.types.every((type: string) => commands.updateAttributes(type, { textAlign: alignment }));
+      },
+      unsetTextAlign: () => ({ commands }: any) => {
+        return this.options.types.every((type: string) => commands.resetAttributes(type, 'textAlign'));
+      },
+    } as any;
+  },
+});
 
 export default function RichTextEditor({ 
   content, 
@@ -80,9 +229,12 @@ export default function RichTextEditor({
   placeholder = 'Draft your manuscript here...', 
   isFullscreen, 
   onOpenCiteLinkModal,
+  onOpenFindReplace,
   onImagePasted,
-  borderStyle = 'none'
+  borderStyle = 'none',
+  pageSize = 'A4'
 }: RichTextEditorProps) {
+  const [showStylesMenu, setShowStylesMenu] = useState(false);
   const [showBoxMenu, setShowBoxMenu] = useState(false);
   const [showTableMenu, setShowTableMenu] = useState(false);
   const [customRows, setCustomRows] = useState(3);
@@ -95,6 +247,23 @@ export default function RichTextEditor({
         heading: {
           levels: [1, 2, 3],
         },
+      }),
+      CustomUnderline,
+      CustomHighlight,
+      CalloutBox,
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: 'editorial-table',
+        },
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      CustomTextAlign.configure({
+        types: ['heading', 'paragraph'],
+        alignments: ['left', 'center', 'right', 'justify'],
+        defaultAlignment: 'left',
       }),
       Image.configure({
         allowBase64: true,
@@ -112,7 +281,7 @@ export default function RichTextEditor({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-slate max-w-none focus:outline-none min-h-[550px] sm:min-h-[650px] text-lg lg:text-xl leading-relaxed font-serif px-2 sm:px-6 py-4',
+        class: 'prose prose-slate dark:prose-invert max-w-none focus:outline-none min-h-[550px] sm:min-h-[650px] text-lg lg:text-xl leading-relaxed font-serif px-2 sm:px-6 py-4 select-text',
       },
       handleDOMEvents: {
         paste: (view, event) => {
@@ -143,6 +312,59 @@ export default function RichTextEditor({
     },
   });
 
+  // Non-conflicting Alt+... keyboard shortcuts for MS Word-like typography
+  useEffect(() => {
+    if (!editor) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && !e.ctrlKey && !e.metaKey) {
+        if (e.key === '0') {
+          e.preventDefault();
+          editor.chain().focus().setParagraph().run();
+        } else if (e.key === '1') {
+          e.preventDefault();
+          editor.chain().focus().toggleHeading({ level: 1 }).run();
+        } else if (e.key === '2') {
+          e.preventDefault();
+          editor.chain().focus().toggleHeading({ level: 2 }).run();
+        } else if (e.key === '3') {
+          e.preventDefault();
+          editor.chain().focus().toggleHeading({ level: 3 }).run();
+        } else if (e.key === 'b' || e.key === 'B') {
+          e.preventDefault();
+          editor.chain().focus().toggleBold().run();
+        } else if (e.key === 'i' || e.key === 'I') {
+          e.preventDefault();
+          editor.chain().focus().toggleItalic().run();
+        } else if (e.key === 'u' || e.key === 'U') {
+          e.preventDefault();
+          editor.chain().focus().toggleMark('underline').run();
+        } else if (e.key === 'm' || e.key === 'M') {
+          e.preventDefault();
+          editor.chain().focus().toggleMark('highlight').run();
+        } else if (e.key === 'l' || e.key === 'L') {
+          e.preventDefault();
+          (editor.chain().focus() as any).setTextAlign('left').run();
+        } else if (e.key === 'c' || e.key === 'C') {
+          e.preventDefault();
+          (editor.chain().focus() as any).setTextAlign('center').run();
+        } else if (e.key === 'r' || e.key === 'R') {
+          e.preventDefault();
+          (editor.chain().focus() as any).setTextAlign('right').run();
+        } else if (e.key === 'j' || e.key === 'J') {
+          e.preventDefault();
+          (editor.chain().focus() as any).setTextAlign('justify').run();
+        } else if ((e.key === 'f' || e.key === 'F') && onOpenFindReplace) {
+          e.preventDefault();
+          onOpenFindReplace();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editor, onOpenFindReplace]);
+
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
       editor.commands.setContent(content);
@@ -153,20 +375,24 @@ export default function RichTextEditor({
 
   // Insert Word-like Table with editable cells
   const insertWordTable = (rows = 3, cols = 3) => {
-    let tableHtml = '<table class="editorial-table"><thead><tr>';
-    for (let c = 1; c <= cols; c++) {
-      tableHtml += `<th>Column Header ${c}</th>`;
-    }
-    tableHtml += '</tr></thead><tbody>';
-    for (let r = 1; r <= rows; r++) {
-      tableHtml += '<tr>';
+    try {
+      (editor.chain().focus() as any).insertTable({ rows, cols, withHeaderRow: true }).run();
+    } catch {
+      let tableHtml = '<table class="editorial-table"><thead><tr>';
       for (let c = 1; c <= cols; c++) {
-        tableHtml += `<td>Row ${r}, Col ${c}</td>`;
+        tableHtml += `<th>Column Header ${c}</th>`;
       }
-      tableHtml += '</tr>';
+      tableHtml += '</tr></thead><tbody>';
+      for (let r = 1; r <= rows; r++) {
+        tableHtml += '<tr>';
+        for (let c = 1; c <= cols; c++) {
+          tableHtml += `<td>Row ${r}, Col ${c}</td>`;
+        }
+        tableHtml += '</tr>';
+      }
+      tableHtml += '</tbody></table><p></p>';
+      editor.chain().focus().insertContent(tableHtml).run();
     }
-    tableHtml += '</tbody></table><p></p>';
-    editor.chain().focus().insertContent(tableHtml).run();
     setShowTableMenu(false);
     setShowCustomTableModal(false);
   };
@@ -203,7 +429,7 @@ export default function RichTextEditor({
       contentPlaceholder = 'Summary points or bulleted review items for this section.';
     }
 
-    const boxHtml = `<div class="callout-box callout-${type === 'takeaway' ? 'tip' : type}"><p><strong>${icon} ${label}:</strong> ${contentPlaceholder}</p></div><p></p>`;
+    const boxHtml = `<div data-type="${type}" class="callout-box callout-${type}"><p><strong>${icon} ${label}:</strong> ${contentPlaceholder}</p></div><p></p>`;
     editor.chain().focus().insertContent(boxHtml).run();
     setShowBoxMenu(false);
   };
@@ -214,66 +440,217 @@ export default function RichTextEditor({
     editor.chain().focus().insertContent(breakHtml).run();
   };
 
+  // Indentation Handlers
+  const handleIndent = () => {
+    if (!editor) return;
+    if (editor.can().sinkListItem('listItem')) {
+      editor.chain().focus().sinkListItem('listItem').run();
+    } else {
+      document.execCommand('indent', false);
+      onChange(editor.getHTML());
+    }
+  };
+
+  const handleOutdent = () => {
+    if (!editor) return;
+    if (editor.can().liftListItem('listItem')) {
+      editor.chain().focus().liftListItem('listItem').run();
+    } else {
+      document.execCommand('outdent', false);
+      onChange(editor.getHTML());
+    }
+  };
+
   return (
     <div className={cn(
-      "flex flex-col bg-transparent transition-all duration-300 relative",
-      isFullscreen ? "fixed inset-0 z-50 p-6 lg:p-14 bg-editorial-bg overflow-y-auto" : ""
+      "flex flex-col bg-transparent transition-all duration-300 relative w-full max-w-full overflow-x-hidden",
+      isFullscreen ? "fixed inset-0 z-50 p-6 lg:p-14 bg-editorial-bg dark:bg-stone-950 overflow-y-auto" : ""
     )}>
       {/* ========================================================================= */}
       {/* MICROSOFT WORD-LIKE EDITING TOOLBAR RIBBON */}
       {/* Dedicated fixed place above the manuscript sheet - zero freezing over text */}
       {/* ========================================================================= */}
-      <div className="mb-4 bg-editorial-sidebar border border-editorial-border rounded-xl p-2 sm:p-2.5 flex flex-wrap items-center gap-1 shadow-xs select-none static z-10 w-full shrink-0">
+      <div className="mb-4 bg-editorial-sidebar dark:bg-stone-900 border border-editorial-border dark:border-stone-800 rounded-xl p-2 sm:p-2.5 flex flex-wrap items-center gap-1 shadow-xs static z-10 w-full max-w-full shrink-0">
         
-        {/* Headings */}
+        {/* Microsoft Word Style Selector Dropdown */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowStylesMenu(!showStylesMenu)}
+            className="h-8 px-2.5 rounded-lg border border-editorial-border dark:border-stone-700 bg-white dark:bg-stone-800 hover:border-editorial-accent text-editorial-text dark:text-stone-100 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors shrink-0"
+            title="Word Styles Gallery (Alt+0, Alt+1, Alt+2, Alt+3)"
+          >
+            <Type size={13} className="text-editorial-accent dark:text-amber-400" />
+            <span className="font-serif">
+              {editor.isActive('heading', { level: 1 })
+                ? 'Heading 1'
+                : editor.isActive('heading', { level: 2 })
+                ? 'Heading 2'
+                : editor.isActive('heading', { level: 3 })
+                ? 'Heading 3'
+                : 'Normal (Prose)'}
+            </span>
+            <ChevronDown size={11} className="text-editorial-muted dark:text-stone-400" />
+          </button>
+
+          {showStylesMenu && (
+            <>
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setShowStylesMenu(false)} 
+              />
+              <div className="absolute left-0 top-9 w-60 bg-white dark:bg-stone-800 border border-editorial-border dark:border-stone-700 rounded-xl shadow-xl p-1.5 z-50 space-y-1 text-xs">
+                <div className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider font-bold text-editorial-muted dark:text-stone-400 border-b border-editorial-divider dark:border-stone-700">
+                  Microsoft Word Styles
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    editor.chain().focus().setParagraph().run();
+                    setShowStylesMenu(false);
+                  }}
+                  className={cn(
+                    "w-full text-left px-3 py-2 rounded-lg flex items-center justify-between transition-colors cursor-pointer",
+                    editor.isActive('paragraph') && !editor.isActive('heading')
+                      ? "bg-editorial-sidebar dark:bg-stone-700 text-editorial-accent dark:text-amber-300 font-bold"
+                      : "hover:bg-editorial-sidebar/60 dark:hover:bg-stone-700/60 text-editorial-text dark:text-stone-100"
+                  )}
+                >
+                  <div>
+                    <div className="font-serif text-sm">Normal</div>
+                    <div className="text-[10px] text-editorial-muted dark:text-stone-400 font-sans">Body paragraph text (Alt+0)</div>
+                  </div>
+                  {editor.isActive('paragraph') && !editor.isActive('heading') && <Check size={13} />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    editor.chain().focus().toggleHeading({ level: 1 }).run();
+                    setShowStylesMenu(false);
+                  }}
+                  className={cn(
+                    "w-full text-left px-3 py-2 rounded-lg flex items-center justify-between transition-colors cursor-pointer",
+                    editor.isActive('heading', { level: 1 })
+                      ? "bg-editorial-sidebar dark:bg-stone-700 text-editorial-accent dark:text-amber-300 font-bold"
+                      : "hover:bg-editorial-sidebar/60 dark:hover:bg-stone-700/60 text-editorial-text dark:text-stone-100"
+                  )}
+                >
+                  <div>
+                    <div className="font-serif text-base font-bold text-editorial-text dark:text-stone-100">Heading 1</div>
+                    <div className="text-[10px] text-editorial-muted dark:text-stone-400 font-sans">Main chapter & title (Alt+1)</div>
+                  </div>
+                  {editor.isActive('heading', { level: 1 }) && <Check size={13} />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    editor.chain().focus().toggleHeading({ level: 2 }).run();
+                    setShowStylesMenu(false);
+                  }}
+                  className={cn(
+                    "w-full text-left px-3 py-2 rounded-lg flex items-center justify-between transition-colors cursor-pointer",
+                    editor.isActive('heading', { level: 2 })
+                      ? "bg-editorial-sidebar dark:bg-stone-700 text-editorial-accent dark:text-amber-300 font-bold"
+                      : "hover:bg-editorial-sidebar/60 dark:hover:bg-stone-700/60 text-editorial-text dark:text-stone-100"
+                  )}
+                >
+                  <div>
+                    <div className="font-serif text-sm font-semibold text-editorial-text dark:text-stone-100">Heading 2</div>
+                    <div className="text-[10px] text-editorial-muted dark:text-stone-400 font-sans">Major section heading (Alt+2)</div>
+                  </div>
+                  {editor.isActive('heading', { level: 2 }) && <Check size={13} />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    editor.chain().focus().toggleHeading({ level: 3 }).run();
+                    setShowStylesMenu(false);
+                  }}
+                  className={cn(
+                    "w-full text-left px-3 py-2 rounded-lg flex items-center justify-between transition-colors cursor-pointer",
+                    editor.isActive('heading', { level: 3 })
+                      ? "bg-editorial-sidebar dark:bg-stone-700 text-editorial-accent dark:text-amber-300 font-bold"
+                      : "hover:bg-editorial-sidebar/60 dark:hover:bg-stone-700/60 text-editorial-text dark:text-stone-100"
+                  )}
+                >
+                  <div>
+                    <div className="font-serif text-xs font-semibold text-editorial-text dark:text-stone-100">Heading 3</div>
+                    <div className="text-[10px] text-editorial-muted dark:text-stone-400 font-sans">Minor subsection (Alt+3)</div>
+                  </div>
+                  {editor.isActive('heading', { level: 3 }) && <Check size={13} />}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Quick Headings Buttons */}
         <div className="flex items-center gap-0.5">
           <MenuButton 
             onClick={() => editor.chain().focus().setParagraph().run()}
             isActive={editor.isActive('paragraph') && !editor.isActive('heading')}
-            title="Normal Paragraph Text"
+            title="Normal Paragraph Text (Alt+0)"
           >
             <span className="font-serif font-bold text-xs px-1">P</span>
           </MenuButton>
           <MenuButton 
             onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
             isActive={editor.isActive('heading', { level: 1 })}
-            title="Heading 1 (Main Section)"
+            title="Heading 1 (Alt+1)"
           >
             <Heading1 size={15} />
           </MenuButton>
           <MenuButton 
             onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
             isActive={editor.isActive('heading', { level: 2 })}
-            title="Heading 2 (Sub-section)"
+            title="Heading 2 (Alt+2)"
           >
             <Heading2 size={15} />
           </MenuButton>
           <MenuButton 
             onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
             isActive={editor.isActive('heading', { level: 3 })}
-            title="Heading 3 (Minor Topic)"
+            title="Heading 3 (Alt+3)"
           >
             <Heading3 size={15} />
           </MenuButton>
         </div>
 
-        <div className="w-px h-5 bg-editorial-divider mx-1" />
+        <div className="w-px h-5 bg-editorial-divider dark:bg-stone-700 mx-1 shrink-0" />
 
-        {/* Text Formats: Bold, Italic, Strikethrough, Code */}
+        {/* Text Formats: Bold, Italic, Underline, Highlight, Strikethrough, Code */}
         <div className="flex items-center gap-0.5">
           <MenuButton 
             onClick={() => editor.chain().focus().toggleBold().run()}
             isActive={editor.isActive('bold')}
-            title="Bold (Ctrl+B)"
+            title="Bold (Alt+B)"
           >
             <Bold size={15} />
           </MenuButton>
           <MenuButton 
             onClick={() => editor.chain().focus().toggleItalic().run()}
             isActive={editor.isActive('italic')}
-            title="Italic (Ctrl+I)"
+            title="Italic (Alt+I)"
           >
             <Italic size={15} />
+          </MenuButton>
+          <MenuButton 
+            onClick={() => (editor.chain().focus() as any).toggleUnderline().run()}
+            isActive={editor.isActive('underline')}
+            title="Underline (Alt+U)"
+          >
+            <UnderlineIcon size={15} />
+          </MenuButton>
+          <MenuButton 
+            onClick={() => (editor.chain().focus() as any).toggleHighlight().run()}
+            isActive={editor.isActive('highlight')}
+            title="Highlight Text (Alt+M)"
+          >
+            <Highlighter size={15} />
           </MenuButton>
           <MenuButton 
             onClick={() => editor.chain().focus().toggleStrike().run()}
@@ -288,6 +665,54 @@ export default function RichTextEditor({
             title="Inline Monospace Code"
           >
             <Code size={15} />
+          </MenuButton>
+        </div>
+
+        <div className="w-px h-5 bg-editorial-divider dark:bg-stone-700 mx-1 shrink-0" />
+
+        {/* Left, Center, Right, Balanced / Justify Alignment & Indent Options */}
+        <div className="flex items-center gap-0.5">
+          <MenuButton 
+            onClick={() => (editor.chain().focus() as any).setTextAlign('left').run()}
+            isActive={editor.isActive({ textAlign: 'left' })}
+            title="Align Left (Ctrl+Shift+L)"
+          >
+            <AlignLeft size={15} />
+          </MenuButton>
+          <MenuButton 
+            onClick={() => (editor.chain().focus() as any).setTextAlign('center').run()}
+            isActive={editor.isActive({ textAlign: 'center' })}
+            title="Align Center (Ctrl+Shift+E)"
+          >
+            <AlignCenter size={15} />
+          </MenuButton>
+          <MenuButton 
+            onClick={() => (editor.chain().focus() as any).setTextAlign('right').run()}
+            isActive={editor.isActive({ textAlign: 'right' })}
+            title="Align Right (Ctrl+Shift+R)"
+          >
+            <AlignRight size={15} />
+          </MenuButton>
+          <MenuButton 
+            onClick={() => (editor.chain().focus() as any).setTextAlign('justify').run()}
+            isActive={editor.isActive({ textAlign: 'justify' })}
+            title="Balanced Justify (Balanced text alignment with neat margins)"
+          >
+            <AlignJustify size={15} />
+          </MenuButton>
+
+          {/* Indent & Outdent */}
+          <MenuButton 
+            onClick={handleOutdent}
+            title="Decrease Indent / Outdent"
+          >
+            <Outdent size={15} />
+          </MenuButton>
+          <MenuButton 
+            onClick={handleIndent}
+            title="Increase Indent"
+          >
+            <Indent size={15} />
           </MenuButton>
         </div>
 
@@ -489,6 +914,68 @@ export default function RichTextEditor({
           </button>
         )}
 
+        {/* Word-like Find & Replace Ribbon Button */}
+        {onOpenFindReplace && (
+          <button
+            type="button"
+            onClick={onOpenFindReplace}
+            className="px-2.5 py-1.5 bg-white dark:bg-stone-800 border border-editorial-border dark:border-stone-700 rounded hover:border-editorial-accent text-editorial-text dark:text-stone-200 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+            title="Find and replace words like MS Word (Alt+F)"
+          >
+            <Search size={13} className="text-editorial-accent dark:text-amber-400" />
+            <span className="hidden sm:inline">Find & Replace</span>
+          </button>
+        )}
+
+        {/* Dynamic Interactive Table Controls (when cursor is inside a table) */}
+        {editor.isActive('table') && (
+          <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 px-2 py-1 rounded-md text-[11px] font-mono shrink-0">
+            <span className="font-bold text-amber-900 dark:text-amber-300 mr-1 flex items-center gap-1">
+              <TableIcon size={12} /> Table:
+            </span>
+            <button
+              type="button"
+              onClick={() => (editor.chain().focus() as any).addRowAfter().run()}
+              className="px-1.5 py-0.5 bg-white dark:bg-stone-800 border border-editorial-border dark:border-stone-700 rounded hover:bg-neutral-50 dark:hover:bg-stone-700 text-editorial-text dark:text-stone-200 cursor-pointer"
+              title="Add Row Below"
+            >
+              + Row
+            </button>
+            <button
+              type="button"
+              onClick={() => (editor.chain().focus() as any).deleteRow().run()}
+              className="px-1.5 py-0.5 bg-white dark:bg-stone-800 border border-editorial-border dark:border-stone-700 rounded hover:bg-neutral-50 dark:hover:bg-stone-700 text-editorial-text dark:text-stone-200 cursor-pointer"
+              title="Delete Row"
+            >
+              - Row
+            </button>
+            <button
+              type="button"
+              onClick={() => (editor.chain().focus() as any).addColumnAfter().run()}
+              className="px-1.5 py-0.5 bg-white dark:bg-stone-800 border border-editorial-border dark:border-stone-700 rounded hover:bg-neutral-50 dark:hover:bg-stone-700 text-editorial-text dark:text-stone-200 cursor-pointer"
+              title="Add Column Right"
+            >
+              + Col
+            </button>
+            <button
+              type="button"
+              onClick={() => (editor.chain().focus() as any).deleteColumn().run()}
+              className="px-1.5 py-0.5 bg-white dark:bg-stone-800 border border-editorial-border dark:border-stone-700 rounded hover:bg-neutral-50 dark:hover:bg-stone-700 text-editorial-text dark:text-stone-200 cursor-pointer"
+              title="Delete Column"
+            >
+              - Col
+            </button>
+            <button
+              type="button"
+              onClick={() => (editor.chain().focus() as any).deleteTable().run()}
+              className="px-1.5 py-0.5 bg-red-50 text-red-700 border border-red-300 rounded hover:bg-red-100 cursor-pointer"
+              title="Delete Entire Table"
+            >
+              <Trash2 size={11} />
+            </button>
+          </div>
+        )}
+
         <div className="flex-1" />
 
         {/* Clear formatting */}
@@ -574,10 +1061,16 @@ export default function RichTextEditor({
       {/* ========================================================================= */}
       {/* PURE WHITE WRITING SHEET */}
       {/* Zero section guide text inside the white paper - completely pristine */}
-      {/* Styled with architectural page border model */}
+      {/* Styled with architectural page border and trim size model */}
       {/* ========================================================================= */}
       <div className={cn(
-        "flex-1 relative bg-white rounded-xl p-6 sm:p-10 shadow-xs transition-all",
+        "flex-1 relative bg-white dark:bg-stone-900 text-editorial-text dark:text-stone-100 rounded-xl p-6 sm:p-12 shadow-xs transition-all select-text max-w-full overflow-x-hidden border border-editorial-border/60 dark:border-stone-800 mx-auto w-full",
+        pageSize === 'A3' ? 'max-w-5xl' :
+        pageSize === 'Letter' ? 'max-w-3xl' :
+        pageSize === 'A5' ? 'max-w-xl' :
+        pageSize === 'Legal' ? 'max-w-3xl' :
+        pageSize === 'Trade 6x9' ? 'max-w-2xl' :
+        'max-w-3xl', // A4 default
         borderStyle === 'classic-double' ? 'page-border-classic-double' :
         borderStyle === 'oxford' ? 'page-border-oxford' :
         borderStyle === 'ornate-corners' ? 'page-border-ornate-corners' :
@@ -586,9 +1079,9 @@ export default function RichTextEditor({
         borderStyle === 'manuscript-frame' ? 'page-border-manuscript-frame' :
         borderStyle === 'none' ? 'page-border-none' :
         'page-border-classic-single',
-        isFullscreen ? "max-w-3xl mx-auto w-full py-16" : ""
+        isFullscreen ? "py-16" : ""
       )}>
-        <EditorContent editor={editor} />
+        <EditorContent editor={editor} className="select-text" />
       </div>
 
       {/* Bottom Character / Word Metric */}

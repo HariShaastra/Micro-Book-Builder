@@ -59,7 +59,7 @@ export default function NewBookModal({
   const [subtitle, setSubtitle] = useState('');
   const [authorName, setAuthorName] = useState(defaultAuthor);
   const [coAuthors, setCoAuthors] = useState('');
-  const [publisher, setPublisher] = useState('Shaastra Publishing Workshop');
+  const [publisher, setPublisher] = useState('Shaastra Press Workshop');
   const [language, setLanguage] = useState('English');
   const [genre, setGenre] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
@@ -215,13 +215,13 @@ export default function NewBookModal({
         },
         copyright: {
           enabled: true,
-          text: `© ${copyrightYear} ${authorName.trim() || 'Author'}. All rights reserved under the Shaastra Publishing Framework.`,
+          text: `© ${copyrightYear} ${authorName.trim() || 'Author'}. All rights reserved under the Shaastra Editorial Framework.`,
           isbn: isbn.trim(),
           edition: edition.trim()
         }
       },
       pageSettings: {
-        size: 'Trade 6x9',
+        size: 'A4',
         margins: 'normal',
         orientation: 'portrait',
         headerText: title.trim(),

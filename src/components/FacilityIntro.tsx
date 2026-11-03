@@ -13,6 +13,7 @@ interface FacilityIntroProps {
   steps: string[];
   tip?: string;
   className?: string;
+  defaultCollapsed?: boolean;
 }
 
 export default function FacilityIntro({
@@ -21,13 +22,17 @@ export default function FacilityIntro({
   description,
   steps,
   tip,
-  className = ""
+  className = "",
+  defaultCollapsed = true
 }: FacilityIntroProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
   return (
-    <div className={`bg-editorial-sidebar/50 border border-editorial-border rounded-xl p-4 sm:p-5 shadow-2xs transition-all ${className}`}>
-      <div className="flex items-start justify-between gap-3">
+    <div className={`bg-editorial-sidebar/50 border border-editorial-border rounded-xl p-3.5 sm:p-4 shadow-2xs transition-all ${className}`}>
+      <div 
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="flex items-center justify-between gap-3 cursor-pointer select-none"
+      >
         <div className="flex items-center gap-2.5">
           <div className="w-6 h-6 rounded-full bg-editorial-sidebar flex items-center justify-center text-editorial-accent shrink-0">
             <Info size={14} />
@@ -43,12 +48,16 @@ export default function FacilityIntro({
         </div>
 
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="text-editorial-muted hover:text-editorial-text p-1 rounded transition-colors text-xs flex items-center gap-1 font-mono"
-          title={isCollapsed ? "Expand Guide" : "Collapse Guide"}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsCollapsed(!isCollapsed);
+          }}
+          className="text-editorial-muted hover:text-editorial-text px-2 py-1 rounded transition-colors text-xs flex items-center gap-1.5 font-mono bg-white/70 border border-editorial-border/60 shrink-0 cursor-pointer"
+          title={isCollapsed ? "Click to learn how to use this facility" : "Close facility guide"}
         >
-          <span className="text-[10px] hidden sm:inline">{isCollapsed ? 'Show' : 'Hide'}</span>
-          {isCollapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+          <span className="text-[10px] font-bold">{isCollapsed ? 'Learn More' : 'Close'}</span>
+          {isCollapsed ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
         </button>
       </div>
 

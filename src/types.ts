@@ -50,9 +50,34 @@ export type BookType =
   | 'prd'
   | 'speech'
   | 'newsletter'
-  | 'custom';
+  | 'custom'
+  | 'scratch'
+  | 'school_guide'
+  | 'teacher_handbook'
+  | 'parent_guide'
+  | 'fiction_novel'
+  | 'academic_research'
+  | 'student_workbook'
+  | 'nep_implementation'
+  | 'poetry_collection';
 
 export type DocumentType = BookType;
+
+export interface DocumentSubCategory {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string;
+}
+
+export interface DocumentCategory {
+  id: string;
+  name: string;
+  icon?: string;
+  color?: string;
+  description?: string;
+  subCategories: DocumentSubCategory[];
+}
 
 export type CollaboratorRole = 'viewer' | 'commenter' | 'editor';
 
@@ -143,7 +168,7 @@ export interface CoverConfig {
   accentColor?: string;
   styleTemplate?: CoverStyleTemplate;
   alignment?: 'left' | 'center' | 'right';
-  borderStyle?: 'none' | 'simple' | 'ornate' | 'modern';
+  borderStyle?: 'none' | 'simple' | 'ornate' | 'modern' | 'single' | 'double';
 }
 
 export interface FrontMatter {
@@ -237,8 +262,10 @@ export type PageBorderStyle =
   | 'modern-accent' 
   | 'manuscript-frame';
 
+export type SupportedPageSize = 'A4' | 'A3' | 'Letter' | 'A5' | 'Legal' | 'Executive' | 'Trade 6x9' | 'Custom' | 'Digest 5.5x8.5';
+
 export interface PageSettings {
-  size: 'Trade 6x9' | 'A4' | 'A5' | 'Letter' | 'Custom' | 'Digest 5.5x8.5';
+  size: SupportedPageSize;
   margins: 'narrow' | 'normal' | 'wide';
   orientation: 'portrait' | 'landscape';
   headerText?: string;
@@ -278,6 +305,10 @@ export interface Book {
   subtitle?: string;
   description: string;
   type: BookType;
+  category?: string;
+  subCategory?: string;
+  categoryId?: string;
+  subCategoryId?: string;
   blueprintId?: string;
   notes?: string;
   coverImage?: string;

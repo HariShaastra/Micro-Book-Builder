@@ -64,7 +64,7 @@ export default function MediaLibraryModal({
   const filtered = assets.filter(a => a.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs select-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-xs">
       <div className="bg-editorial-bg border border-editorial-border rounded-xl w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-editorial-divider flex items-center justify-between bg-editorial-sidebar/40">
@@ -98,7 +98,7 @@ export default function MediaLibraryModal({
             />
           </div>
 
-          <label className="w-full sm:w-auto px-4 py-2 bg-editorial-text text-white hover:bg-black rounded font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-xs transition-colors">
+          <label className="w-full sm:w-auto px-4 py-2 bg-editorial-accent hover:bg-editorial-accent/90 text-white dark:bg-amber-600 dark:hover:bg-amber-500 dark:text-white rounded font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-xs transition-colors">
             <Upload size={14} />
             <span>Upload Image</span>
             <input type="file" accept="image/*" multiple onChange={handleUpload} className="hidden" />
